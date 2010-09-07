@@ -308,17 +308,6 @@ namespace GENIVisuals
                     overlayLayer.AddChild(panel, location, offset);
                 }
             }
-
-
-            // **** Experimental: Add inset map
-            if (false)
-            {
-                InsetMap insetMap = new InsetMap();
-                insetMap.Height = 200;
-                insetMap.Width = 200;
-            }
-
-
         }
 
 
@@ -897,27 +886,99 @@ namespace GENIVisuals
         //
         // ** Experimental **
         //
+        // Callback for a click on a zoomButton object.
+        // Create a floatable child window with a new map.
+        //
+        // TODO: See if this can be done without the (relatively)
+        // heavyweight effect of a new MainPage.  Also, seems
+        // that I'm overwriting main page parameters (for instance
+        // with the zoomButton's slice name) sometimes.
+        //
         void labelButtonClick(object sender, RoutedEventArgs e)
         {
-            ChildWindow cw = new ChildWindow();
-            cw.Height = this.Height * 0.75;
-            cw.Width = this.Width * 0.75;
+            // Find the associated visual (gotta be a better way),
+            // so that we can use the advice alist.
+            // TODO: learn how to pass the visual along with e
+            Visual vis = null;
+            foreach (Visual thisVis in visuals)
+            {
+                if (elements.ContainsKey(thisVis) &&
+                    elements[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
+                {
+                    vis = thisVis;
+                }
+            }
+            // error if vis is null;
+            
+            // Make a new map window in a floatable child window.
             SessionParameters newParams = new SessionParameters();
-            newParams = parameters;
-            //newParams.slice = "Pathlet";
+            newParams = parameters; // TODO: I need a shallow copy here to avoid overwrite.
+            FloatableWindow fw = new FloatableWindow();
+            fw.ResizeMode = ResizeMode.CanResize;
+            fw.Height = 200;
+            fw.Width = 200;
 
             MainPage mp = new MainPage(newParams);
+            Location center = GetLocation(vis.objType, vis.objName);
+            double targetZoomLevel = 2.0;
+
+            // Accept any changes to defaults from advice.
+            Alist advice = vis.positionAdvice; // Really the wrong name for this.
+            if (advice != null)
+            {
+                // zoomTarget says which slice to display in popup
+                string zoomTarget = advice.GetValue("zoomTarget");
+                if (zoomTarget != null)
+                    newParams.slice = zoomTarget;
+
+                // width
+                string width = advice.GetValue("width");
+                if (width != null)
+                    fw.Width = Convert.ToInt32(width);
+
+                // height
+                string height = advice.GetValue("height");
+                if (height != null)
+                    fw.Height = Convert.ToInt32(height);
+
+                // latitude
+                string latitude = advice.GetValue("latitude");
+                if (latitude != null)
+                    center.Latitude = Convert.ToDouble(latitude);
+
+                // longitude
+                string longitude = advice.GetValue("longitude");
+                if (longitude != null)
+                    center.Longitude = Convert.ToDouble(longitude);
+
+                // zoomLevel
+                string zoomLevel = advice.GetValue("zoomLevel");
+                if (zoomLevel != null)
+                    targetZoomLevel = Convert.ToDouble(zoomLevel);
+            }
+            fw.Title = newParams.slice;
+            mp.sliceMap.SetView(center, targetZoomLevel);
+
+            // Don't need decorations in child window.
             Grid lr = mp.LayoutRoot;
             lr.Children.Remove(mp.image1); 
             lr.Children.Remove(mp.infoLabel);
             lr.Children.Remove(mp.sliceLabel);
-            lr.Children.Remove(mp.grid1);
             mp.sliceMap.SetValue(Grid.RowProperty, 0);
             mp.sliceMap.SetValue(Grid.ColumnProperty, 0);
             mp.sliceMap.SetValue(Grid.RowSpanProperty, 3);
             mp.sliceMap.SetValue(Grid.ColumnSpanProperty, 3);
-            cw.Content = mp;
-            cw.Show();
+            fw.Content = mp;
+
+            fw.SetValue(Grid.RowProperty, 1);
+            fw.SetValue(Grid.ColumnProperty, 1);
+            fw.SetValue(Grid.RowSpanProperty, 1);
+            fw.SetValue(Grid.ColumnSpanProperty, 1);
+
+            // Position popup.
+            fw.ParentLayoutRoot = mapCanvas;
+            Point centerPoint = sliceMap.LocationToViewportPoint(center);
+            fw.Show(centerPoint.X, centerPoint.Y);
         }
 
 
@@ -1023,7 +1084,7 @@ namespace GENIVisuals
         // If map view changes, need to refresh all animations.
         private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
         {
-            foreach (Visual vis in elements.Keys)
+            foreach (Visual vis in elements.Keys) // why not "in visuals"?
                 UpdateStoryboard(vis);
         }
 
