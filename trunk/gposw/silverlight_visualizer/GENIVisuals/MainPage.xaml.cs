@@ -55,76 +55,83 @@ namespace GENIVisuals
         private MapLayer overlayLayer = null;
         private Random myRandom = new Random();
 
-
         public MainPage(SessionParameters myparams)
         {
             InitializeComponent();
-
-            // Remember session parameters
             parameters = myparams;
-
+            if (parameters.topologyVisuals.Count == 0)
+            {
+                // Remember session parameters
+                parameters.makePeriodicQuery = true;
 #if DEBUG
-            parameters.useDebugServer = true;
-            parameters.debugServer = "http://ganel.gpolab.bbn.com:17380";
-            parameters.slice = "SmartRE15Sep";
-            parameters.dbHost = "ganel.gpolab.bbn.com";
-            parameters.dbUser = "wzeng";
-            parameters.dbPassword = "wzeng";
-            parameters.dbName = "wzeng";
+                parameters.useDebugServer = true;
+                parameters.debugServer = "http://ganel.gpolab.bbn.com:17380";
+                parameters.slice = "SmartRE15Sep";
+                parameters.dbHost = "ganel.gpolab.bbn.com";
+                parameters.dbUser = "wzeng";
+                parameters.dbPassword = "wzeng";
+                parameters.dbName = "wzeng";
 #endif
-            // Gather up parameters to pass to PHP scripts.
-            if ((parameters.slice != null) && (parameters.slice != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?slice=" + parameters.slice;
-                else
-                    URIParams += "&slice=" + parameters.slice;
-            }
-            if ((parameters.dbHost != null) && (parameters.dbHost != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?server=" + parameters.dbHost;
-                else
-                    URIParams += "&server=" + parameters.dbHost;
-            }
-            if ((parameters.dbUser != null) && (parameters.dbUser != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?dbUsername=" + parameters.dbUser;
-                else
-                    URIParams += "&dbUsername=" + parameters.dbUser;
-            }
-            if ((parameters.dbPassword != null) && (parameters.dbPassword != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?dbPassword=" + parameters.dbPassword;
-                else
-                    URIParams += "&dbPassword=" + parameters.dbPassword;
-            }
-            if ((parameters.dbName != null) && (parameters.dbName != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?db=" + parameters.dbName;
-                else
-                    URIParams += "&db=" + parameters.dbName;
-            }
+                // Gather up parameters to pass to PHP scripts.
+                if ((parameters.slice != null) && (parameters.slice != ""))
+                {
+                    if (URIParams == "")
+                        URIParams = "?slice=" + parameters.slice;
+                    else
+                        URIParams += "&slice=" + parameters.slice;
+                }
+                if ((parameters.dbHost != null) && (parameters.dbHost != ""))
+                {
+                    if (URIParams == "")
+                        URIParams = "?server=" + parameters.dbHost;
+                    else
+                        URIParams += "&server=" + parameters.dbHost;
+                }
+                if ((parameters.dbUser != null) && (parameters.dbUser != ""))
+                {
+                    if (URIParams == "")
+                        URIParams = "?dbUsername=" + parameters.dbUser;
+                    else
+                        URIParams += "&dbUsername=" + parameters.dbUser;
+                }
+                if ((parameters.dbPassword != null) && (parameters.dbPassword != ""))
+                {
+                    if (URIParams == "")
+                        URIParams = "?dbPassword=" + parameters.dbPassword;
+                    else
+                        URIParams += "&dbPassword=" + parameters.dbPassword;
+                }
+                if ((parameters.dbName != null) && (parameters.dbName != ""))
+                {
+                    if (URIParams == "")
+                        URIParams = "?db=" + parameters.dbName;
+                    else
+                        URIParams += "&db=" + parameters.dbName;
+                }
 
-            // Figure out base URI for PHP scripts.
+                // Figure out base URI for PHP scripts.
 
-            if (parameters.useDebugServer)
-            {
-                phpBase = parameters.debugServer + "/GENIVisuals/bin/php/";
+                if (parameters.useDebugServer)
+                {
+                    phpBase = parameters.debugServer + "/GENIVisuals/bin/php/";
+                }
+                else
+                {
+                    string myURI = Application.Current.Host.Source.ToString();
+                    phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
+                }
+
+                string uri = phpBase + "get_nodes.php" + URIParams;
+                // Get list of nodes from PHP script.
+                wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
+                wc.DownloadStringAsync(new Uri(uri));
             }
             else
             {
-                string myURI = Application.Current.Host.Source.ToString();
-                phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
+                DisplayVisuals();
+                SetupDataUpdates();
+                updateQueue.Enqueue(null); // setup status updates
             }
-
-            string uri = phpBase + "get_nodes.php" + URIParams;
-            // Get list of nodes from PHP script.
-            wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
-            wc.DownloadStringAsync(new Uri(uri));
         }
 
         void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
@@ -494,6 +501,14 @@ namespace GENIVisuals
                     overlayLayer.AddChild(panel, location, nodePoints[obj]);
                     mapObjects.Add(obj, panel);
                 }
+            }
+
+            // **** Experimental: Add inset map
+            if (false)
+            {
+                InsetMap insetMap = new InsetMap();
+                insetMap.Height = 200;
+                insetMap.Width = 200;
             }
         }
 
@@ -1073,80 +1088,57 @@ namespace GENIVisuals
         //
         // ** Experimental **
         //
-        // Callback for a click on a zoomButton object.
-        // Create a floatable child window with a new map.
-        //
-        // TODO: See if this can be done without the (relatively)
-        // heavyweight effect of a new MainPage.  Also, seems
-        // that I'm overwriting main page parameters (for instance
-        // with the zoomButton's slice name) sometimes.
-        //
         void labelButtonClick(object sender, RoutedEventArgs e)
         {
-            // Find the associated visual (gotta be a better way),
-            // so that we can use the advice alist.
-            // TODO: learn how to pass the visual along with e
-            Visual vis = null;
-            foreach (Visual thisVis in visuals)
+            ChildWindow cw = new ChildWindow();
+            cw.Height = this.ActualHeight * 0.5;
+            cw.Width = this.ActualWidth * 0.5;
+            SessionParameters newParams = new SessionParameters(parameters);
+            newParams.makePeriodicQuery = false;
+            String objName = ((Button)sender).Content.ToString();
+            List<Object> minimapNodes = new List<Object>();
+            List<Object> minimapLinks = new List<Object>();
+            List<Visual> minimapVisuals = new List<Visual>();
+            if (nodes.Keys.Contains(objName))
             {
-                if (elements.ContainsKey(thisVis) &&
-                    elements[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
+                Node node = nodes[objName];
+                //find all the ndoes that are at the same coordinates
+                foreach (Node n in nodes.Values)
                 {
-                    vis = thisVis;
+                    if (n.Latitude == node.Latitude && n.Longitude == n.Longitude)
+                    {
+                        minimapNodes.Add(n);
+                    }
                 }
+                //find all the links that are incident to the colocated nodes
+                foreach (Link link in links.Values)
+                {
+                    foreach (Object n in minimapNodes)
+                    {
+                        if (nodes[link.destNode] == n || nodes[link.sourceNode] == n)
+                        {
+                            minimapLinks.Add(link);
+                        }
+                    }
+                }
+                //find all the visuals that are associated to the found links and nodes
+                foreach (Object obj in visualsForSource.Keys)
+                {
+                    if (minimapNodes.Contains(obj))
+                    {
+                        minimapVisuals.AddRange(visualsForSource[obj]);
+                    }
+                    if (minimapLinks.Contains(obj))
+                    {
+                        minimapVisuals.AddRange(visualsForSource[obj]);
+                    }
+                }
+                newParams.topologyVisuals = minimapVisuals;
             }
-            // error if vis is null;
-            
-            // Make a new map window in a floatable child window.
-            SessionParameters newParams = new SessionParameters();
-            newParams = parameters; // TODO: I need a shallow copy here to avoid overwrite.
-            FloatableWindow fw = new FloatableWindow();
-            fw.ResizeMode = ResizeMode.CanResize;
-            fw.Height = 200;
-            fw.Width = 200;
+
+            //newParams.slice = "Pathlet";
 
             MainPage mp = new MainPage(newParams);
-            Location center = GetLocation(vis.objType, vis.objName);
-            double targetZoomLevel = 2.0;
-
-            // Accept any changes to defaults from advice.
-            Alist advice = vis.positionAdvice; // Really the wrong name for this.
-            if (advice != null)
-            {
-                // zoomTarget says which slice to display in popup
-                string zoomTarget = advice.GetValue("zoomTarget");
-                if (zoomTarget != null)
-                    newParams.slice = zoomTarget;
-
-                // width
-                string width = advice.GetValue("width");
-                if (width != null)
-                    fw.Width = Convert.ToInt32(width);
-
-                // height
-                string height = advice.GetValue("height");
-                if (height != null)
-                    fw.Height = Convert.ToInt32(height);
-
-                // latitude
-                string latitude = advice.GetValue("latitude");
-                if (latitude != null)
-                    center.Latitude = Convert.ToDouble(latitude);
-
-                // longitude
-                string longitude = advice.GetValue("longitude");
-                if (longitude != null)
-                    center.Longitude = Convert.ToDouble(longitude);
-
-                // zoomLevel
-                string zoomLevel = advice.GetValue("zoomLevel");
-                if (zoomLevel != null)
-                    targetZoomLevel = Convert.ToDouble(zoomLevel);
-            }
-            fw.Title = newParams.slice;
-            mp.sliceMap.SetView(center, targetZoomLevel);
-
-            // Don't need decorations in child window.
             Grid lr = mp.LayoutRoot;
             lr.Children.Remove(mp.image1);
             lr.Children.Remove(mp.infoLabel);
@@ -1155,32 +1147,24 @@ namespace GENIVisuals
             mp.sliceMap.SetValue(Grid.ColumnProperty, 0);
             mp.sliceMap.SetValue(Grid.RowSpanProperty, 3);
             mp.sliceMap.SetValue(Grid.ColumnSpanProperty, 3);
-            fw.Content = mp;
-
-            fw.SetValue(Grid.RowProperty, 1);
-            fw.SetValue(Grid.ColumnProperty, 1);
-            fw.SetValue(Grid.RowSpanProperty, 1);
-            fw.SetValue(Grid.ColumnSpanProperty, 1);
-
-            // Position popup.
-            fw.ParentLayoutRoot = mapCanvas;
-            Point centerPoint = sliceMap.LocationToViewportPoint(center);
-            fw.Show(centerPoint.X, centerPoint.Y);
+            cw.Content = mp;
+            cw.Show();
         }
-
-
 
         // Just register for timer event.
         // Don't make data queries any more frequently than this timer.
         private void SetupDataUpdates()
         {
-            DispatcherTimer dt = new DispatcherTimer();
-            if (parameters.useDebugServer)
-                dt.Interval = new TimeSpan(0, 0, 0, 0, 500); // dy, hr, min, sec, ms
-            else
-                dt.Interval = new TimeSpan(0, 0, 0, 0, 250); // dy, hr, min, sec, ms
-            dt.Tick += new EventHandler(RequestNextUpdate);
-            dt.Start();
+            if (parameters.makePeriodicQuery)
+            {
+                DispatcherTimer dt = new DispatcherTimer();
+                if (parameters.useDebugServer)
+                    dt.Interval = new TimeSpan(0, 0, 0, 0, 500); // dy, hr, min, sec, ms
+                else
+                    dt.Interval = new TimeSpan(0, 0, 0, 0, 250); // dy, hr, min, sec, ms
+                dt.Tick += new EventHandler(RequestNextUpdate);
+                dt.Start();
+            }
         }
 
 
@@ -1272,7 +1256,7 @@ namespace GENIVisuals
         private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
         {
             UpdateVisuals();
-            foreach (Visual vis in elements.Keys) // why not "in visuals"?
+            foreach (Visual vis in elements.Keys)
                 UpdateStoryboard(vis);
         }
 
