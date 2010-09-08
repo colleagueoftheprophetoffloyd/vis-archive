@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Windows;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -25,11 +26,15 @@ namespace GENIVisuals.models
             debugServer = copy.debugServer;
             useBogusData = copy.useBogusData;
             makePeriodicQuery = copy.makePeriodicQuery;
-            topologyVisuals = new List<Visual>(copy.topologyVisuals);
+            topologyVisuals = new Collection<Visual>(copy.topologyVisuals);
+            topologyNodes = new Dictionary<string, Node>(copy.topologyNodes);
+            topologyLinks = new Dictionary<string, Link>(copy.topologyLinks);
         }
 
         public SessionParameters() {
-            topologyVisuals = new List<Visual>();
+            topologyVisuals = new Collection<Visual>();
+            topologyNodes = new Dictionary<string, Node>();
+            topologyLinks = new Dictionary<string, Link>();
         }
 
         public string slice { get; set; }
@@ -41,6 +46,8 @@ namespace GENIVisuals.models
         public string debugServer { get; set; }
         public bool useBogusData { get; set; }
         public bool makePeriodicQuery { get; set; }
-        public List<Visual> topologyVisuals { get; set; }
+        public Collection<Visual> topologyVisuals { get; set; }
+        public Dictionary<string, Node> topologyNodes { get; set; }
+        public Dictionary<string, Link> topologyLinks { get; set; }
     }
 }
