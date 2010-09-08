@@ -36,17 +36,21 @@ namespace GENIVisuals
         private Dictionary<string, Node> nodes = new Dictionary<string, Node>();
         private Dictionary<string, Link> links = new Dictionary<string, Link>();
 
-        
+
         // Objects associated with a particular visual.
         private Dictionary<Visual, VisualElements> elements =
             new Dictionary<Visual, VisualElements>();
-                
+
         // Keep a chart for each object so that multiple line plots share same surface.
         private Dictionary<Object, Chart> charts = new Dictionary<Object, Chart>();
 
         // The list of all visuals for updating.
         private Queue<Visual> updateQueue = new Queue<Visual>();
-
+        private Dictionary<Object, Point> nodePoints = new Dictionary<Object, Point>();
+        private Dictionary<Point, List<Object>> overlappedObjects = new Dictionary<Point, List<Object>>();
+        private Dictionary<Object, UIElement> mapObjects = new Dictionary<Object, UIElement>();
+        // Map from data sources (nodes, links) to their associated visuals.
+        Dictionary<Object, List<Visual>> visualsForSource = new Dictionary<Object, List<Visual>>();
 
         private MapLayer overlayLayer = null;
         private Random myRandom = new Random();
@@ -59,6 +63,15 @@ namespace GENIVisuals
             // Remember session parameters
             parameters = myparams;
 
+#if DEBUG
+            parameters.useDebugServer = true;
+            parameters.debugServer = "http://ganel.gpolab.bbn.com:17380";
+            parameters.slice = "SmartRE15Sep";
+            parameters.dbHost = "ganel.gpolab.bbn.com";
+            parameters.dbUser = "wzeng";
+            parameters.dbPassword = "wzeng";
+            parameters.dbName = "wzeng";
+#endif
             // Gather up parameters to pass to PHP scripts.
             if ((parameters.slice != null) && (parameters.slice != ""))
             {
@@ -97,6 +110,7 @@ namespace GENIVisuals
             }
 
             // Figure out base URI for PHP scripts.
+
             if (parameters.useDebugServer)
             {
                 phpBase = parameters.debugServer + "/GENIVisuals/bin/php/";
@@ -107,9 +121,10 @@ namespace GENIVisuals
                 phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
             }
 
+            string uri = phpBase + "get_nodes.php" + URIParams;
             // Get list of nodes from PHP script.
             wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
-            wc.DownloadStringAsync(new Uri(phpBase + "get_nodes.php" + URIParams));
+            wc.DownloadStringAsync(new Uri(uri));
         }
 
         void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
@@ -147,9 +162,14 @@ namespace GENIVisuals
                 else if (resultType == "status")
                 {
                     LoadStatus(completeResult);
+                    //UpdateVisuals();
                 }
 
                 sliceLabel.Content = parameters.slice;
+            }
+            else
+            {
+                infoLabel.Content = e.Error;
             }
         }
 
@@ -159,7 +179,7 @@ namespace GENIVisuals
         {
             // Forget what we know about nodes.
             nodes.Clear();
-           
+
             // Loop over list of nodes.
             JsonArray nodesJson = (JsonArray)completeResult["results"];
             foreach (JsonValue nodeJson in nodesJson)
@@ -176,7 +196,7 @@ namespace GENIVisuals
         {
             // Forget what we know about links.
             links.Clear();
-           
+
             // Loop over list of links.
             JsonArray linksJson = (JsonArray)completeResult["results"];
             foreach (JsonValue linkJson in linksJson)
@@ -200,22 +220,117 @@ namespace GENIVisuals
             }
         }
 
-
+        private double distance(Point a, Point b)
+        {
+            return Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+        }
 
         //
         // Parse visuals content out of JSON and remember the
         // requested visual display parameters.
         //
+        private void UpdateVisuals()
+        {
+            overlappedObjects.Clear();
+            nodePoints.Clear();
+
+            //group ojbects that are close to each other
+            foreach (Object obj in visualsForSource.Keys)
+            {
+                string objType = visualsForSource[obj][0].objType;
+                string objName = visualsForSource[obj][0].objName;
+                Location location = GetLocation(objType, objName);
+                if (objType == "node")
+                {
+                    Point newPoint = sliceMap.LocationToViewportPoint(location);
+                    //if this new obejct is within a circle of a radius of 20 of an previous object,
+                    //add it to the area of the previous object
+                    bool added = false;
+                    foreach (Point point in overlappedObjects.Keys)
+                    {
+                        if (distance(newPoint, point) <= 30)
+                        {
+                            overlappedObjects[point].Add(obj);
+                            added = true;
+                            continue;
+                        }
+                    }
+                    //otherwise, make it a new point in the overlappedObjects
+                    if (!added)
+                    {
+                        List<Object> newList = new List<object>();
+                        newList.Add(obj);
+                        overlappedObjects.Add(newPoint, newList);
+                    }
+                }
+            }
+
+            infoLabel.Content = overlappedObjects.Count;
+
+            //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
+            foreach (Point point in overlappedObjects.Keys)
+            {
+                List<Object> objects = overlappedObjects[point];
+                if (objects.Count >= 2)
+                {
+                    double avgX = 0, avgY = 0;
+                    for (int i = 0; i < objects.Count; i++)
+                    {
+                        Object oj = objects[i];
+                        string objType = visualsForSource[oj][0].objType;
+                        string objName = visualsForSource[oj][0].objName;
+                        Point p = sliceMap.LocationToViewportPoint(GetLocation(objType, objName));
+                        nodePoints[oj] = p;
+                        avgX += p.X;
+                        avgY += p.Y;
+                    }
+
+                    avgX = avgX / objects.Count;
+                    avgY = avgY / objects.Count;
+
+                    //(avgX, avgY) is the center of polygon formed by the nearby objects;
+                    double step = 2 * Math.PI / objects.Count;
+                    for (int i = 0; i < objects.Count; i++)
+                    {
+                        Point offset = new Point();
+                        double newX, newY;
+                        Object oj = objects[i];
+                        Point p = nodePoints[oj];
+                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + Math.PI / 4);
+                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + Math.PI / 4);
+                        offset.X = newX - p.X;
+                        offset.Y = newY - p.Y;
+                        nodePoints[oj] = offset;
+                    }
+                }
+            }
+
+            // Build controls for the data sources and data.
+            foreach (Object obj in visualsForSource.Keys)
+            {
+                string objType = visualsForSource[obj][0].objType;
+                string objName = visualsForSource[obj][0].objName;
+
+                Location location = GetLocation(objType, objName);
+                if (mapObjects.Keys.Contains(obj) && nodePoints.Keys.Contains(obj)) {
+                    UIElement el = mapObjects[obj];
+                    if (el != null)
+                    {
+                        overlayLayer.Children.Remove(el);
+                        overlayLayer.AddChild(el, location, nodePoints[obj]);
+                        overlayLayer.UpdateLayout();
+                    }
+                }
+            }
+        }
+
         private void DisplayVisuals()
         {
-            // Map from data sources (nodes, links) to their associated visuals.
-            Dictionary<Object, List<Visual>> visualsForSource = 
-                new Dictionary<Object, List<Visual>>();
-
-
+            visualsForSource.Clear();
             elements.Clear();
             updateQueue.Clear();
-
+            overlappedObjects.Clear();
+            nodePoints.Clear();
 
             // Loop over list of visuals.  Group visuals associated with
             // same data source together in a dictionary.
@@ -230,7 +345,7 @@ namespace GENIVisuals
 
                 if (dataSource != null)
                 {
-                    if (! visualsForSource.ContainsKey(dataSource))
+                    if (!visualsForSource.ContainsKey(dataSource))
                         visualsForSource[dataSource] = new List<Visual>();
                     visualsForSource[dataSource].Add(thisVisual);
                 }
@@ -255,9 +370,80 @@ namespace GENIVisuals
             if (overlayLayer == null)
             {
                 overlayLayer = new MapLayer();
+                //overlayLayer.SizeChanged += new SizeChangedEventHandler(UpdateVisuals);
                 sliceMap.Children.Add(overlayLayer);
             }
 
+            //group ojbects that are close to each other
+            foreach (Object obj in visualsForSource.Keys)
+            {
+                string objType = visualsForSource[obj][0].objType;
+                string objName = visualsForSource[obj][0].objName;
+                Location location = GetLocation(objType, objName);
+                if (objType == "node")
+                {
+                    Point newPoint = sliceMap.LocationToViewportPoint(location);
+                    //if this new obejct is within a circle of a radius of 20 of an previous object,
+                    //add it to the area of the previous object
+                    bool added = false;
+                    foreach (Point point in overlappedObjects.Keys)
+                    {
+                        if (distance(newPoint, point) <= 30)
+                        {
+                            overlappedObjects[point].Add(obj);
+                            added = true;
+                            continue;
+                        }
+                    }
+                    //otherwise, make it a new point in the overlappedObjects
+                    if (!added)
+                    {
+                        List<Object> newList = new List<object>();
+                        newList.Add(obj);
+                        overlappedObjects.Add(newPoint, newList);
+                    }
+                }
+            }
+
+            infoLabel.Content = overlappedObjects.Count;
+
+            //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
+            foreach (Point point in overlappedObjects.Keys)
+            {
+                List<Object> objects = overlappedObjects[point];
+                if (objects.Count >= 2)
+                {
+                    double avgX = 0, avgY = 0;
+                    for (int i = 0; i < objects.Count; i++)
+                    {
+                        Object oj = objects[i];
+                        string objType = visualsForSource[oj][0].objType;
+                        string objName = visualsForSource[oj][0].objName;
+                        Point p = sliceMap.LocationToViewportPoint(GetLocation(objType, objName));
+                        nodePoints[oj] = p;
+                        avgX += p.X;
+                        avgY += p.Y;
+                    }
+
+                    avgX = avgX / objects.Count;
+                    avgY = avgY / objects.Count;
+
+                    //(avgX, avgY) is the center of polygon formed by the nearby objects;
+                    double step = 2 * Math.PI / objects.Count;
+                    for (int i = 0; i < objects.Count; i++)
+                    {
+                        Point offset = new Point();
+                        double newX, newY;
+                        Object oj = objects[i];
+                        Point p = nodePoints[oj];
+                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + Math.PI / 4);
+                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + Math.PI / 4);
+                        offset.X = newX - p.X;
+                        offset.Y = newY - p.Y;
+                        nodePoints[oj] = offset;
+                    }
+                }
+            }
 
             // Build controls for the data sources and data.
             foreach (Object obj in visualsForSource.Keys)
@@ -305,7 +491,8 @@ namespace GENIVisuals
                 if (panel != null)
                 {
                     Location location = GetLocation(objType, objName);
-                    overlayLayer.AddChild(panel, location, offset);
+                    overlayLayer.AddChild(panel, location, nodePoints[obj]);
+                    mapObjects.Add(obj, panel);
                 }
             }
         }
@@ -321,7 +508,7 @@ namespace GENIVisuals
             if (myStat != null)
             {
                 // Load the data pairs.
-                JsonArray dataJson = (JsonArray) completeResult["results"];
+                JsonArray dataJson = (JsonArray)completeResult["results"];
                 foreach (JsonValue pairJson in dataJson)
                 {
                     DateTime time = DateTime.MinValue;
@@ -388,7 +575,7 @@ namespace GENIVisuals
             Storyboard oldSb = info.GetProperty(VisualElements.StoryboardProperty) as Storyboard;
             List<UIElement> oldElementList = info.GetProperty(VisualElements.AnimationElementsProperty) as List<UIElement>;
             StatusInfo statusInfo = info.GetProperty(VisualElements.StatusProperty) as StatusInfo;
-            string status = ""; 
+            string status = "";
             if (statusInfo != null)
                 status = statusInfo.Status;
 
@@ -481,7 +668,7 @@ namespace GENIVisuals
                 }
             }
             else if ((vis.objType == "link") &&
-                     (vis.infoType == "arc" ) &&
+                     (vis.infoType == "arc") &&
                      ((status == "forward") || (status == "backward") || (status == "both")))
             {
                 newSb = new Storyboard();
@@ -507,7 +694,7 @@ namespace GENIVisuals
             {
                 info.SetProperty(VisualElements.StoryboardProperty, newSb);
                 if (newElementList != null)
-                    info.SetProperty(VisualElements.AnimationElementsProperty, 
+                    info.SetProperty(VisualElements.AnimationElementsProperty,
                                      newElementList);
                 newSb.Begin();
             }
@@ -535,7 +722,7 @@ namespace GENIVisuals
             Point startPoint = sliceMap.LocationToViewportPoint(locations.First());
             int numPoints = pl.Locations.Count();
             double frameDuration = 2000.0 / Convert.ToDouble(numPoints - 1);
-                       
+
             for (int index = 0; index < numPoints; index++)
             {
                 Location loc = locations.ElementAt(index);
@@ -626,7 +813,7 @@ namespace GENIVisuals
                                             nodes[thisLink.destNode].Longitude);
             if ((sourceLoc == null) || (destLoc == null))
                 return null;
-            
+
             // Build polyline.
             string renderAdvice = "";
             if (visual.renderAdvice != null)
@@ -701,7 +888,7 @@ namespace GENIVisuals
                                                 nodes[thisLink.destNode].Longitude);
                 Point sPoint = sliceMap.LocationToViewportPoint(sourceLoc);
                 Point dPoint = sliceMap.LocationToViewportPoint(destLoc);
-                Point middle = new Point((sPoint.X + dPoint.X) / 2.0, 
+                Point middle = new Point((sPoint.X + dPoint.X) / 2.0,
                                          (sPoint.Y + dPoint.Y) / 2.0);
                 return sliceMap.ViewportPointToLocation(middle);
             }
@@ -724,7 +911,7 @@ namespace GENIVisuals
             {
                 objectName = vis.objName;
                 obj = nodes[objectName];
-            } 
+            }
             else if (vis.objType == "link")
             {
                 objectName = vis.objName;
@@ -738,7 +925,7 @@ namespace GENIVisuals
             // *** For goodness sake, please refactor me so
             // *** that we're not stuck with this big if statement
             // *** and all this logic in one place.
-            
+
             // Is is a label?
             if (vis.infoType == "label")
             {
@@ -961,7 +1148,7 @@ namespace GENIVisuals
 
             // Don't need decorations in child window.
             Grid lr = mp.LayoutRoot;
-            lr.Children.Remove(mp.image1); 
+            lr.Children.Remove(mp.image1);
             lr.Children.Remove(mp.infoLabel);
             lr.Children.Remove(mp.sliceLabel);
             mp.sliceMap.SetValue(Grid.RowProperty, 0);
@@ -1033,7 +1220,7 @@ namespace GENIVisuals
             queryURI = new Uri(phpBase + scriptName + scriptParams);
             wc.DownloadStringAsync(queryURI, vis);
         }
-        
+
 
         // Just register for timer event.
         private void SetupBogusDataUpdates()
@@ -1084,9 +1271,14 @@ namespace GENIVisuals
         // If map view changes, need to refresh all animations.
         private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
         {
+            UpdateVisuals();
             foreach (Visual vis in elements.Keys) // why not "in visuals"?
                 UpdateStoryboard(vis);
         }
 
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
