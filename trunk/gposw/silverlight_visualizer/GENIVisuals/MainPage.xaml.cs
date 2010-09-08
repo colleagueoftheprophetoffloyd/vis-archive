@@ -36,7 +36,7 @@ namespace GENIVisuals
         private Dictionary<string, Node> nodes = new Dictionary<string, Node>();
         private Dictionary<string, Link> links = new Dictionary<string, Link>();
 
-
+        
         // Objects associated with a particular visual.
         private Dictionary<Visual, VisualElements> elements =
             new Dictionary<Visual, VisualElements>();
@@ -128,6 +128,9 @@ namespace GENIVisuals
             }
             else
             {
+                this.visuals = parameters.topologyVisuals;
+                this.nodes = parameters.topologyNodes;
+                this.links = parameters.topologyLinks;
                 DisplayVisuals();
                 SetupDataUpdates();
                 updateQueue.Enqueue(null); // setup status updates
@@ -297,14 +300,20 @@ namespace GENIVisuals
 
                     //(avgX, avgY) is the center of polygon formed by the nearby objects;
                     double step = 2 * Math.PI / objects.Count;
+                    double radiusOffset = 0;
+                    if (objects.Count == 2)
+                    {
+                        radiusOffset = Math.PI / 4;
+                    }
+
                     for (int i = 0; i < objects.Count; i++)
                     {
                         Point offset = new Point();
                         double newX, newY;
                         Object oj = objects[i];
                         Point p = nodePoints[oj];
-                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + Math.PI / 4);
-                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + Math.PI / 4);
+                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + radiusOffset);
+                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + radiusOffset);
                         offset.X = newX - p.X;
                         offset.Y = newY - p.Y;
                         nodePoints[oj] = offset;
@@ -437,14 +446,20 @@ namespace GENIVisuals
 
                     //(avgX, avgY) is the center of polygon formed by the nearby objects;
                     double step = 2 * Math.PI / objects.Count;
+                    double radiusOffset = 0;
+                    if (objects.Count == 2)
+                    {
+                        radiusOffset = Math.PI / 4;
+                    }
+
                     for (int i = 0; i < objects.Count; i++)
                     {
                         Point offset = new Point();
                         double newX, newY;
                         Object oj = objects[i];
                         Point p = nodePoints[oj];
-                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + Math.PI / 4);
-                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + Math.PI / 4);
+                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + radiusOffset);
+                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + radiusOffset);
                         offset.X = newX - p.X;
                         offset.Y = newY - p.Y;
                         nodePoints[oj] = offset;
@@ -501,14 +516,6 @@ namespace GENIVisuals
                     overlayLayer.AddChild(panel, location, nodePoints[obj]);
                     mapObjects.Add(obj, panel);
                 }
-            }
-
-            // **** Experimental: Add inset map
-            if (false)
-            {
-                InsetMap insetMap = new InsetMap();
-                insetMap.Height = 200;
-                insetMap.Width = 200;
             }
         }
 
@@ -1090,15 +1097,30 @@ namespace GENIVisuals
         //
         void labelButtonClick(object sender, RoutedEventArgs e)
         {
-            ChildWindow cw = new ChildWindow();
-            cw.Height = this.ActualHeight * 0.5;
-            cw.Width = this.ActualWidth * 0.5;
+            // Find the associated visual (gotta be a better way),
+            // so that we can use the advice alist.
+            // TODO: learn how to pass the visual along with e
+            Visual vis = null;
+            foreach (Visual thisVis in visuals)
+            {
+                if (elements.ContainsKey(thisVis) &&
+                    elements[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
+                {
+                    vis = thisVis;
+                }
+            }
+            // error if vis is null;
+
+            // Make a new map window in a floatable child window.
             SessionParameters newParams = new SessionParameters(parameters);
+
             newParams.makePeriodicQuery = false;
+            
             String objName = ((Button)sender).Content.ToString();
             List<Object> minimapNodes = new List<Object>();
             List<Object> minimapLinks = new List<Object>();
-            List<Visual> minimapVisuals = new List<Visual>();
+            Collection<Visual> minimapVisuals = new Collection<Visual>();
+
             if (nodes.Keys.Contains(objName))
             {
                 Node node = nodes[objName];
@@ -1115,7 +1137,8 @@ namespace GENIVisuals
                 {
                     foreach (Object n in minimapNodes)
                     {
-                        if (nodes[link.destNode] == n || nodes[link.sourceNode] == n)
+                        //only edges with both ends inside the topology map are added.
+                        if (minimapNodes.Contains(nodes[link.destNode]) && minimapNodes.Contains(nodes[link.sourceNode]))
                         {
                             minimapLinks.Add(link);
                         }
@@ -1126,19 +1149,87 @@ namespace GENIVisuals
                 {
                     if (minimapNodes.Contains(obj))
                     {
-                        minimapVisuals.AddRange(visualsForSource[obj]);
+                        foreach (Visual v in visualsForSource[obj])
+                        {
+                            minimapVisuals.Add(v);
+                        }
                     }
-                    if (minimapLinks.Contains(obj))
+                    else if (minimapLinks.Contains(obj))
                     {
-                        minimapVisuals.AddRange(visualsForSource[obj]);
+                        foreach (Visual v in visualsForSource[obj])
+                        {
+                            minimapVisuals.Add(v);
+                        }
                     }
                 }
                 newParams.topologyVisuals = minimapVisuals;
+
+                foreach (Object oj in minimapNodes)
+                {
+                    Node n = (Node)oj;
+                    if (!newParams.topologyNodes.Keys.Contains(n.Name))
+                    {
+                        newParams.topologyNodes.Add(n.Name, n);
+                    }
+                }
+
+                foreach (Object oj in minimapLinks)
+                {
+                    Link l = (Link)oj;
+                    if (!newParams.topologyLinks.Keys.Contains(l.name))
+                    {
+                        newParams.topologyLinks.Add(l.name, l);
+                    }
+                }
             }
 
-            //newParams.slice = "Pathlet";
+            FloatableWindow fw = new FloatableWindow();
+            fw.ResizeMode = ResizeMode.CanResize;
+            fw.Height = 200;
+            fw.Width = 200;
 
             MainPage mp = new MainPage(newParams);
+            Location center = GetLocation(vis.objType, vis.objName);
+            double targetZoomLevel = 2.0;
+
+            // Accept any changes to defaults from advice.
+            Alist advice = vis.positionAdvice; // Really the wrong name for this.
+            if (advice != null)
+            {
+                // zoomTarget says which slice to display in popup
+                string zoomTarget = advice.GetValue("zoomTarget");
+                if (zoomTarget != null)
+                    newParams.slice = zoomTarget;
+
+                // width
+                string width = advice.GetValue("width");
+                if (width != null)
+                    fw.Width = Convert.ToInt32(width);
+
+                // height
+                string height = advice.GetValue("height");
+                if (height != null)
+                    fw.Height = Convert.ToInt32(height);
+
+                // latitude
+                string latitude = advice.GetValue("latitude");
+                if (latitude != null)
+                    center.Latitude = Convert.ToDouble(latitude);
+
+                // longitude
+                string longitude = advice.GetValue("longitude");
+                if (longitude != null)
+                    center.Longitude = Convert.ToDouble(longitude);
+
+                // zoomLevel
+                string zoomLevel = advice.GetValue("zoomLevel");
+                if (zoomLevel != null)
+                    targetZoomLevel = Convert.ToDouble(zoomLevel);
+            }
+            fw.Title = newParams.slice;
+            mp.sliceMap.SetView(center, targetZoomLevel);
+
+            // Don't need decorations in child window.
             Grid lr = mp.LayoutRoot;
             lr.Children.Remove(mp.image1);
             lr.Children.Remove(mp.infoLabel);
@@ -1147,8 +1238,17 @@ namespace GENIVisuals
             mp.sliceMap.SetValue(Grid.ColumnProperty, 0);
             mp.sliceMap.SetValue(Grid.RowSpanProperty, 3);
             mp.sliceMap.SetValue(Grid.ColumnSpanProperty, 3);
-            cw.Content = mp;
-            cw.Show();
+            fw.Content = mp;
+
+            fw.SetValue(Grid.RowProperty, 1);
+            fw.SetValue(Grid.ColumnProperty, 1);
+            fw.SetValue(Grid.RowSpanProperty, 1);
+            fw.SetValue(Grid.ColumnSpanProperty, 1);
+
+            // Position popup.
+            fw.ParentLayoutRoot = mapCanvas;
+            Point centerPoint = sliceMap.LocationToViewportPoint(center);
+            fw.Show(centerPoint.X, centerPoint.Y);
         }
 
         // Just register for timer event.
@@ -1256,7 +1356,7 @@ namespace GENIVisuals
         private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
         {
             UpdateVisuals();
-            foreach (Visual vis in elements.Keys)
+            foreach (Visual vis in elements.Keys) // why not "in visuals"?
                 UpdateStoryboard(vis);
         }
 
