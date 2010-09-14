@@ -25,115 +25,120 @@ namespace GENIVisuals
 {
     public partial class MainPage : UserControl
     {
-        private SessionParameters parameters;
-        private string URIParams = "";
-        WebClient wc = new WebClient();
-        private string phpBase;
+        private SessionParameters m_parameters;
+        private string m_URIParams = "";
+        WebClient m_webClient = new WebClient();
+        private string m_phpBase;
 
 
         // All the {visuals, nodes, links} we care about.
-        private Collection<Visual> visuals = new Collection<Visual>();
-        private Dictionary<string, Node> nodes = new Dictionary<string, Node>();
-        private Dictionary<string, Link> links = new Dictionary<string, Link>();
+        private Collection<Visual> m_visuals = new Collection<Visual>();
+        private Dictionary<string, Node> m_nodesDic = new Dictionary<string, Node>();
+        private Dictionary<string, Link> m_linksDic = new Dictionary<string, Link>();
 
+        private Dictionary<string, Node> m_nlrNodesDic = new Dictionary<string,Node>();
+        private Dictionary<string, Node> m_i2NodesDic = new Dictionary<string,Node>();
         
         // Objects associated with a particular visual.
-        private Dictionary<Visual, VisualElements> elements =
+        private Dictionary<Visual, VisualElements> m_elementsDic =
             new Dictionary<Visual, VisualElements>();
 
         // Keep a chart for each object so that multiple line plots share same surface.
-        private Dictionary<Object, Chart> charts = new Dictionary<Object, Chart>();
+        private Dictionary<Object, Chart> m_chartsDic = new Dictionary<Object, Chart>();
 
         // The list of all visuals for updating.
-        private Queue<Visual> updateQueue = new Queue<Visual>();
-        private Dictionary<Object, Point> nodePoints = new Dictionary<Object, Point>();
-        private Dictionary<Point, List<Object>> overlappedObjects = new Dictionary<Point, List<Object>>();
-        private Dictionary<Object, UIElement> mapObjects = new Dictionary<Object, UIElement>();
+        private Queue<Visual> m_updateQueue = new Queue<Visual>();
+        private Dictionary<Object, Point> m_nodeOffsetsDic = new Dictionary<Object, Point>();
+        private Dictionary<Point, List<Object>> m_overlappedObjectsDic = new Dictionary<Point, List<Object>>();
+        private Dictionary<Object, UIElement> m_mapObjectsDic = new Dictionary<Object, UIElement>();
         // Map from data sources (nodes, links) to their associated visuals.
-        Dictionary<Object, List<Visual>> visualsForSource = new Dictionary<Object, List<Visual>>();
+        Dictionary<Object, List<Visual>> m_visualsForSourceDic = new Dictionary<Object, List<Visual>>();
 
-        private MapLayer overlayLayer = null;
-        private Random myRandom = new Random();
+        private MapLayer m_overlayLayer = null;
+        private Random m_random = new Random();
+
+        double m_radius = 10;
+        double m_radiusForRearrangement = 40;
 
         public MainPage(SessionParameters myparams)
         {
             InitializeComponent();
-            parameters = myparams;
-            if (parameters.topologyVisuals.Count == 0)
+            m_parameters = myparams;
+            if (m_parameters.topologyVisuals.Count == 0)
             {
                 // Remember session parameters
-                parameters.makePeriodicQuery = true;
+                m_parameters.makePeriodicQuery = true;
 #if DEBUG
-                parameters.useDebugServer = true;
-                parameters.debugServer = "http://ganel.gpolab.bbn.com:17380";
-                parameters.slice = "SmartRE15Sep";
-                parameters.dbHost = "ganel.gpolab.bbn.com";
-                parameters.dbUser = "wzeng";
-                parameters.dbPassword = "wzeng";
-                parameters.dbName = "wzeng";
+                m_parameters.useDebugServer = true;
+                m_parameters.debugServer = "http://ganel.gpolab.bbn.com:17380";
+                m_parameters.slice = "SmartRE15Sep";
+                m_parameters.dbHost = "ganel.gpolab.bbn.com";
+                m_parameters.dbUser = "wzeng";
+                m_parameters.dbPassword = "wzeng";
+                m_parameters.dbName = "wzeng";
 #endif
                 // Gather up parameters to pass to PHP scripts.
-                if ((parameters.slice != null) && (parameters.slice != ""))
+                if ((m_parameters.slice != null) && (m_parameters.slice != ""))
                 {
-                    if (URIParams == "")
-                        URIParams = "?slice=" + parameters.slice;
+                    if (m_URIParams == "")
+                        m_URIParams = "?slice=" + m_parameters.slice;
                     else
-                        URIParams += "&slice=" + parameters.slice;
+                        m_URIParams += "&slice=" + m_parameters.slice;
                 }
-                if ((parameters.dbHost != null) && (parameters.dbHost != ""))
+                if ((m_parameters.dbHost != null) && (m_parameters.dbHost != ""))
                 {
-                    if (URIParams == "")
-                        URIParams = "?server=" + parameters.dbHost;
+                    if (m_URIParams == "")
+                        m_URIParams = "?server=" + m_parameters.dbHost;
                     else
-                        URIParams += "&server=" + parameters.dbHost;
+                        m_URIParams += "&server=" + m_parameters.dbHost;
                 }
-                if ((parameters.dbUser != null) && (parameters.dbUser != ""))
+                if ((m_parameters.dbUser != null) && (m_parameters.dbUser != ""))
                 {
-                    if (URIParams == "")
-                        URIParams = "?dbUsername=" + parameters.dbUser;
+                    if (m_URIParams == "")
+                        m_URIParams = "?dbUsername=" + m_parameters.dbUser;
                     else
-                        URIParams += "&dbUsername=" + parameters.dbUser;
+                        m_URIParams += "&dbUsername=" + m_parameters.dbUser;
                 }
-                if ((parameters.dbPassword != null) && (parameters.dbPassword != ""))
+                if ((m_parameters.dbPassword != null) && (m_parameters.dbPassword != ""))
                 {
-                    if (URIParams == "")
-                        URIParams = "?dbPassword=" + parameters.dbPassword;
+                    if (m_URIParams == "")
+                        m_URIParams = "?dbPassword=" + m_parameters.dbPassword;
                     else
-                        URIParams += "&dbPassword=" + parameters.dbPassword;
+                        m_URIParams += "&dbPassword=" + m_parameters.dbPassword;
                 }
-                if ((parameters.dbName != null) && (parameters.dbName != ""))
+                if ((m_parameters.dbName != null) && (m_parameters.dbName != ""))
                 {
-                    if (URIParams == "")
-                        URIParams = "?db=" + parameters.dbName;
+                    if (m_URIParams == "")
+                        m_URIParams = "?db=" + m_parameters.dbName;
                     else
-                        URIParams += "&db=" + parameters.dbName;
+                        m_URIParams += "&db=" + m_parameters.dbName;
                 }
 
                 // Figure out base URI for PHP scripts.
 
-                if (parameters.useDebugServer)
+                if (m_parameters.useDebugServer)
                 {
-                    phpBase = parameters.debugServer + "/GENIVisuals/bin/php/";
+                    m_phpBase = m_parameters.debugServer + "/GENIVisuals/bin/php/";
                 }
                 else
                 {
                     string myURI = Application.Current.Host.Source.ToString();
-                    phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
+                    m_phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
                 }
 
-                string uri = phpBase + "get_nodes.php" + URIParams;
+                string uri = m_phpBase + "get_nodes.php" + m_URIParams;
                 // Get list of nodes from PHP script.
-                wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
-                wc.DownloadStringAsync(new Uri(uri));
+                m_webClient.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
+                m_webClient.DownloadStringAsync(new Uri(uri));
             }
             else
             {
-                this.visuals = parameters.topologyVisuals;
-                this.nodes = parameters.topologyNodes;
-                this.links = parameters.topologyLinks;
+                this.m_visuals = m_parameters.topologyVisuals;
+                this.m_nodesDic = m_parameters.topologyNodes;
+                this.m_linksDic = m_parameters.topologyLinks;
                 DisplayVisuals();
                 SetupDataUpdates();
-                updateQueue.Enqueue(null); // setup status updates
+                m_updateQueue.Enqueue(null); // setup status updates
             }
         }
 
@@ -146,21 +151,22 @@ namespace GENIVisuals
                 if (resultType == "nodes")
                 {
                     LoadNodes(completeResult);
-                    wc.DownloadStringAsync(new Uri(phpBase + "get_links.php" + URIParams));
+
+                    m_webClient.DownloadStringAsync(new Uri(m_phpBase + "get_links.php" + m_URIParams));
                 }
                 else if (resultType == "links")
                 {
                     LoadLinks(completeResult);
-                    wc.DownloadStringAsync(new Uri(phpBase + "get_visuals.php" + URIParams));
+                    m_webClient.DownloadStringAsync(new Uri(m_phpBase + "get_visuals.php" + m_URIParams));
                 }
                 else if (resultType == "visuals")
                 {
                     LoadVisuals(completeResult);
                     DisplayVisuals();
                     SetupDataUpdates();
-                    updateQueue.Enqueue(null); // setup status updates
+                    m_updateQueue.Enqueue(null); // setup status updates
 
-                    if (parameters.useBogusData)
+                    if (m_parameters.useBogusData)
                         SetupBogusDataUpdates();
                 }
                 else if (resultType == "data")
@@ -175,7 +181,7 @@ namespace GENIVisuals
                     //UpdateVisuals();
                 }
 
-                sliceLabel.Content = parameters.slice;
+                sliceLabel.Content = m_parameters.slice;
             }
             else
             {
@@ -188,7 +194,7 @@ namespace GENIVisuals
         private void LoadNodes(JsonValue completeResult)
         {
             // Forget what we know about nodes.
-            nodes.Clear();
+            m_nodesDic.Clear();
 
             // Loop over list of nodes.
             JsonArray nodesJson = (JsonArray)completeResult["results"];
@@ -196,7 +202,19 @@ namespace GENIVisuals
             {
                 // Parse node content out of JSON
                 Node thisNode = new Node(nodeJson);
-                nodes[thisNode.Name] = thisNode;
+                m_nodesDic[thisNode.Name] = thisNode;
+            }
+
+            foreach (string name in m_nodesDic.Keys)
+            {
+                if (name.StartsWith("NLR"))
+                {
+                    m_nlrNodesDic.Add(name, m_nodesDic[name]);
+                }
+                else if (name.StartsWith("I2"))
+                {
+                    m_i2NodesDic.Add(name, m_nodesDic[name]);
+                }
             }
         }
 
@@ -205,136 +223,315 @@ namespace GENIVisuals
         private void LoadLinks(JsonValue completeResult)
         {
             // Forget what we know about links.
-            links.Clear();
+            m_linksDic.Clear();
 
             // Loop over list of links.
             JsonArray linksJson = (JsonArray)completeResult["results"];
             foreach (JsonValue linkJson in linksJson)
             {
                 Link thisLink = new Link(linkJson);
-                links[thisLink.name] = thisLink;
+                m_linksDic[thisLink.name] = thisLink;
             }
         }
 
         // Parse visual content out of JSON.
         private void LoadVisuals(JsonValue completeResult)
         {
-            visuals.Clear();
+            m_visuals.Clear();
 
             // Loop over list of visuals.
             JsonArray visualsJson = (JsonArray)completeResult["results"];
             foreach (JsonValue visualJson in visualsJson)
             {
                 Visual thisVisual = new Visual(visualJson);
-                visuals.Add(thisVisual);
+                m_visuals.Add(thisVisual);
             }
+
+            foreach (Node node in m_nlrNodesDic.Values)
+            {
+                Visual vis = new Visual();
+                vis.objName = node.Name;
+                vis.objType = "node";
+                vis.infoType = "label";
+                bool shldAdd = true;
+                foreach (Visual v in m_visuals)
+                {
+                    if (vis.objName == v.objName)
+                    {
+                        shldAdd = false;
+                    }
+                }
+                if (shldAdd)
+                {
+                    m_visuals.Add(vis);
+                }
+            }
+
+            foreach (Node node in m_i2NodesDic.Values)
+            {
+                Visual vis = new Visual();
+                vis.objName = node.Name;
+                vis.objType = "node";
+                vis.infoType = "label";
+                bool shldAdd = true;
+                foreach (Visual v in m_visuals)
+                {
+                    if (vis.objName == v.objName)
+                    {
+                        shldAdd = false;
+                    }
+                }
+                if (shldAdd)
+                {
+                    m_visuals.Add(vis);
+                }
+            }
+
         }
 
-        private double distance(Point a, Point b)
+        private double Distance(Point a, Point b)
         {
             return Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+        }
+
+
+        //TODO: if not all nodes in the topology map has a renderAdvice or
+        //there are more than 9 nodes, we should fall back to the auto-organize scheme.
+        private Point FindOffset(object obj)
+        {
+            if (m_parameters.topologyVisuals.Count == 0)
+            {
+                return m_nodeOffsetsDic[obj];
+            }
+            else
+            {
+                string renderAdvice = m_visualsForSourceDic[obj][0].renderAdvice;
+                double mapHeight = this.ActualHeight;
+                double mapWidth = this.ActualWidth;
+                double verticalOfst = mapHeight / 3;
+                double horizontalOfst = mapWidth / 3;
+                Point ofst = new Point(0, 0);
+                if (renderAdvice.ToLower() == "north")
+                {
+                    ofst.Y -= verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "south")
+                {
+                    ofst.Y += verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "west")
+                {
+                    ofst.X -= horizontalOfst;
+                }
+                else if (renderAdvice.ToLower() == "east")
+                {
+                    ofst.X += horizontalOfst;
+                }
+                else if (renderAdvice.ToLower() == "northeast")
+                {
+                    ofst.X += horizontalOfst;
+                    ofst.Y -= verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "northwest")
+                {
+                    ofst.X -= horizontalOfst;
+                    ofst.Y -= verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "southeast")
+                {
+                    ofst.X += horizontalOfst;
+                    ofst.Y += verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "southwest")
+                {
+                    ofst.X -= horizontalOfst;
+                    ofst.Y += verticalOfst;
+                }
+                else if (renderAdvice.ToLower() == "center")
+                {
+                    //do nothing. used (0,0) as the offset.
+                }
+                else
+                {
+                    //TODO: unknown render adivce.
+                }
+
+                return ofst;
+            }
+
         }
 
         //
         // Parse visuals content out of JSON and remember the
         // requested visual display parameters.
         //
-        private void UpdateVisuals()
+        private void UpdateVisuals(bool createControl)
         {
-            overlappedObjects.Clear();
-            nodePoints.Clear();
+            m_overlappedObjectsDic.Clear();
+            m_nodeOffsetsDic.Clear();
 
-            //group ojbects that are close to each other
-            foreach (Object obj in visualsForSource.Keys)
+            //initialize the offs
+            Point zeroOffset = new Point(0, 0);
+            foreach (Node n in m_nodesDic.Values)
             {
-                string objType = visualsForSource[obj][0].objType;
-                string objName = visualsForSource[obj][0].objName;
-                Location location = GetLocation(objType, objName);
-                if (objType == "node")
+                m_nodeOffsetsDic[n] = zeroOffset;
+            }
+
+            //when a map is used only as a topology map, follow the specified position-advice retrieved
+            //from the database, do not organize them. m_parameters.topologyVisuals.Count == 0 indicates
+            //that the map is NOT used as a topology map.
+            if (m_parameters.topologyVisuals.Count == 0)
+            {
+                //group ojbects that are close to each other
+                foreach (Object obj in m_visualsForSourceDic.Keys)
                 {
-                    Point newPoint = sliceMap.LocationToViewportPoint(location);
-                    //if this new obejct is within a circle of a radius of 20 of an previous object,
-                    //add it to the area of the previous object
-                    bool added = false;
-                    foreach (Point point in overlappedObjects.Keys)
+                    string objType = m_visualsForSourceDic[obj][0].objType;
+                    string objName = m_visualsForSourceDic[obj][0].objName;
+                    string infoType = m_visualsForSourceDic[obj][0].infoType;
+                    Location location = GetLocation(objType, objName);
+                    if (objType == "node")
                     {
-                        if (distance(newPoint, point) <= 30)
+                        Point newPoint = sliceMap.LocationToViewportPoint(location);
+                        //if this new obejct is within a circle of a radius of 20 of an previous object,
+                        //add it to the area of the previous object
+                        bool added = false;
+                        foreach (Point point in m_overlappedObjectsDic.Keys)
                         {
-                            overlappedObjects[point].Add(obj);
-                            added = true;
-                            continue;
+                            if (Distance(newPoint, point) <= m_radiusForRearrangement)
+                            {
+                                m_overlappedObjectsDic[point].Add(obj);
+                                added = true;
+                                continue;
+                            }
+                        }
+                        //otherwise, make it a new point in the overlappedObjects
+                        if (!added)
+                        {
+                            List<Object> newList = new List<object>();
+                            newList.Add(obj);
+                            m_overlappedObjectsDic.Add(newPoint, newList);
                         }
                     }
-                    //otherwise, make it a new point in the overlappedObjects
-                    if (!added)
-                    {
-                        List<Object> newList = new List<object>();
-                        newList.Add(obj);
-                        overlappedObjects.Add(newPoint, newList);
-                    }
                 }
-            }
+#if DEBUG
+                infoLabel.Content = m_overlappedObjectsDic.Count;
+#endif
 
-            infoLabel.Content = overlappedObjects.Count;
-
-            //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
-            foreach (Point point in overlappedObjects.Keys)
-            {
-                List<Object> objects = overlappedObjects[point];
-                if (objects.Count >= 2)
+                //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
+                foreach (Point point in m_overlappedObjectsDic.Keys)
                 {
-                    double avgX = 0, avgY = 0;
-                    for (int i = 0; i < objects.Count; i++)
+                    List<Object> objects = m_overlappedObjectsDic[point];
+                    if (objects.Count >= 2)
                     {
-                        Object oj = objects[i];
-                        string objType = visualsForSource[oj][0].objType;
-                        string objName = visualsForSource[oj][0].objName;
-                        Point p = sliceMap.LocationToViewportPoint(GetLocation(objType, objName));
-                        nodePoints[oj] = p;
-                        avgX += p.X;
-                        avgY += p.Y;
-                    }
+                        double avgX = 0, avgY = 0;
+                        for (int i = 0; i < objects.Count; i++)
+                        {
+                            Object oj = objects[i];
+                            string objType = m_visualsForSourceDic[oj][0].objType;
+                            string objName = m_visualsForSourceDic[oj][0].objName;
+                            Point p = sliceMap.LocationToViewportPoint(GetLocation(objType, objName));
+                            m_nodeOffsetsDic[oj] = p;
+                            avgX += p.X;
+                            avgY += p.Y;
+                        }
 
-                    avgX = avgX / objects.Count;
-                    avgY = avgY / objects.Count;
+                        avgX = avgX / objects.Count;
+                        avgY = avgY / objects.Count;
 
-                    //(avgX, avgY) is the center of polygon formed by the nearby objects;
-                    double step = 2 * Math.PI / objects.Count;
-                    double radiusOffset = 0;
-                    if (objects.Count == 2)
-                    {
-                        radiusOffset = Math.PI / 4;
-                    }
+                        //(avgX, avgY) is the center of polygon formed by the nearby objects;
+                        double step = 2 * Math.PI / objects.Count;
+                        double radiusOffset = 0;
+                        if (objects.Count == 2)
+                        {
+                            radiusOffset = Math.PI / 4;
+                        }
+                        else if (objects.Count == 4)
+                        {
+                            radiusOffset = Math.PI / 6;
+                        }
 
-                    for (int i = 0; i < objects.Count; i++)
-                    {
-                        Point offset = new Point();
-                        double newX, newY;
-                        Object oj = objects[i];
-                        Point p = nodePoints[oj];
-                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + radiusOffset);
-                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + radiusOffset);
-                        offset.X = newX - p.X;
-                        offset.Y = newY - p.Y;
-                        nodePoints[oj] = offset;
+                        for (int i = 0; i < objects.Count; i++)
+                        {
+                            Point offset = new Point();
+                            double newX, newY;
+                            Object oj = objects[i];
+                            Point p = m_nodeOffsetsDic[oj];
+                            newX = avgX + m_radius * objects.Count * Math.Cos(step * i + radiusOffset);
+                            newY = avgY + m_radius * objects.Count * Math.Sin(step * i + radiusOffset);
+                            offset.X = newX - p.X;
+                            offset.Y = newY - p.Y;
+                            m_nodeOffsetsDic[oj] = offset;
+                        }
                     }
                 }
             }
 
-            // Build controls for the data sources and data.
-            foreach (Object obj in visualsForSource.Keys)
+            //update the offsets of the UIElements on the map
+            foreach (Object obj in m_visualsForSourceDic.Keys)
             {
-                string objType = visualsForSource[obj][0].objType;
-                string objName = visualsForSource[obj][0].objName;
-
+                string objType = m_visualsForSourceDic[obj][0].objType;
+                string objName = m_visualsForSourceDic[obj][0].objName;
                 Location location = GetLocation(objType, objName);
-                if (mapObjects.Keys.Contains(obj) && nodePoints.Keys.Contains(obj)) {
-                    UIElement el = mapObjects[obj];
-                    if (el != null)
+
+                if (createControl)
+                {
+                    StackPanel panel = null;
+                    Point offset = new Point(0, 0);
+
+                    foreach (Visual vis in m_visualsForSourceDic[obj])
                     {
-                        overlayLayer.Children.Remove(el);
-                        overlayLayer.AddChild(el, location, nodePoints[obj]);
-                        overlayLayer.UpdateLayout();
+                        UIElement control = MakeVisControl(vis);
+                        if (vis.positionAdvice.GetValue("XOffset") != null)
+                            offset.X = Convert.ToInt32(vis.positionAdvice.GetValue("XOffset"));
+                        if (vis.positionAdvice.GetValue("YOffset") != null)
+                            offset.Y = Convert.ToInt32(vis.positionAdvice.GetValue("YOffset"));
+
+                        if (control != null)
+                        {
+                            if ((vis.infoType == "label") ||
+                                (vis.infoType == "zoomButton") ||
+                                (vis.infoType == "icon") ||
+                                (vis.infoType == "scalar") ||
+                                (vis.infoType == "lineGraph"))
+                            {
+                                if (panel == null)
+                                {
+                                    panel = new StackPanel();
+                                    panel.Opacity = 0.7;
+                                    panel.Background = new SolidColorBrush(Colors.LightGray);
+                                }
+                                panel.Children.Add(control);
+                            }
+                            else if (vis.infoType == "arc")
+                            {
+                                sliceMap.Children.Add(control);
+                            }
+
+                            if ((vis.statQuery != null) && (vis.statQuery != ""))
+                                m_updateQueue.Enqueue(vis);
+                            m_elementsDic[vis].SetProperty(VisualElements.StatusAnimationTargetProperty, control);
+                        }
+                    }
+
+                    if (panel != null)
+                    {
+                        Point ofst = FindOffset(obj);
+                        m_overlayLayer.AddChild(panel, location, ofst);
+                        m_mapObjectsDic.Add(obj, panel);
+                    }
+                }
+                else
+                {
+                    if (m_mapObjectsDic.Keys.Contains(obj) && m_nodeOffsetsDic.Keys.Contains(obj))
+                    {
+                        UIElement el = m_mapObjectsDic[obj];
+                        if (el != null)
+                        {
+                            Point ofst = FindOffset(obj);
+                            m_overlayLayer.Children.Remove(el);
+                            m_overlayLayer.AddChild(el, location, ofst);
+                            m_overlayLayer.UpdateLayout();
+                        }
                     }
                 }
             }
@@ -342,28 +539,26 @@ namespace GENIVisuals
 
         private void DisplayVisuals()
         {
-            visualsForSource.Clear();
-            elements.Clear();
-            updateQueue.Clear();
-            overlappedObjects.Clear();
-            nodePoints.Clear();
+            m_visualsForSourceDic.Clear();
+            m_elementsDic.Clear();
+            m_updateQueue.Clear();
 
             // Loop over list of visuals.  Group visuals associated with
             // same data source together in a dictionary.
-            foreach (Visual thisVisual in visuals)
+            foreach (Visual thisVisual in m_visuals)
             {
-                elements[thisVisual] = new VisualElements();
+                m_elementsDic[thisVisual] = new VisualElements();
                 Object dataSource = null;
                 if (thisVisual.objType == "node")
-                    dataSource = nodes[thisVisual.objName];
+                    dataSource = m_nodesDic[thisVisual.objName];
                 else if (thisVisual.objType == "link")
-                    dataSource = links[thisVisual.objName];
+                    dataSource = m_linksDic[thisVisual.objName];
 
                 if (dataSource != null)
                 {
-                    if (!visualsForSource.ContainsKey(dataSource))
-                        visualsForSource[dataSource] = new List<Visual>();
-                    visualsForSource[dataSource].Add(thisVisual);
+                    if (!m_visualsForSourceDic.ContainsKey(dataSource))
+                        m_visualsForSourceDic[dataSource] = new List<Visual>();
+                    m_visualsForSourceDic[dataSource].Add(thisVisual);
                 }
             }
 
@@ -383,140 +578,15 @@ namespace GENIVisuals
             }
 
             // Add a layer for drawing overlays (labels, graphs, etc.)
-            if (overlayLayer == null)
+            if (m_overlayLayer == null)
             {
-                overlayLayer = new MapLayer();
+                m_overlayLayer = new MapLayer();
                 //overlayLayer.SizeChanged += new SizeChangedEventHandler(UpdateVisuals);
-                sliceMap.Children.Add(overlayLayer);
+                sliceMap.Children.Add(m_overlayLayer);
             }
-
-            //group ojbects that are close to each other
-            foreach (Object obj in visualsForSource.Keys)
-            {
-                string objType = visualsForSource[obj][0].objType;
-                string objName = visualsForSource[obj][0].objName;
-                Location location = GetLocation(objType, objName);
-                if (objType == "node")
-                {
-                    Point newPoint = sliceMap.LocationToViewportPoint(location);
-                    //if this new obejct is within a circle of a radius of 20 of an previous object,
-                    //add it to the area of the previous object
-                    bool added = false;
-                    foreach (Point point in overlappedObjects.Keys)
-                    {
-                        if (distance(newPoint, point) <= 30)
-                        {
-                            overlappedObjects[point].Add(obj);
-                            added = true;
-                            continue;
-                        }
-                    }
-                    //otherwise, make it a new point in the overlappedObjects
-                    if (!added)
-                    {
-                        List<Object> newList = new List<object>();
-                        newList.Add(obj);
-                        overlappedObjects.Add(newPoint, newList);
-                    }
-                }
-            }
-
-            infoLabel.Content = overlappedObjects.Count;
-
-            //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
-            foreach (Point point in overlappedObjects.Keys)
-            {
-                List<Object> objects = overlappedObjects[point];
-                if (objects.Count >= 2)
-                {
-                    double avgX = 0, avgY = 0;
-                    for (int i = 0; i < objects.Count; i++)
-                    {
-                        Object oj = objects[i];
-                        string objType = visualsForSource[oj][0].objType;
-                        string objName = visualsForSource[oj][0].objName;
-                        Point p = sliceMap.LocationToViewportPoint(GetLocation(objType, objName));
-                        nodePoints[oj] = p;
-                        avgX += p.X;
-                        avgY += p.Y;
-                    }
-
-                    avgX = avgX / objects.Count;
-                    avgY = avgY / objects.Count;
-
-                    //(avgX, avgY) is the center of polygon formed by the nearby objects;
-                    double step = 2 * Math.PI / objects.Count;
-                    double radiusOffset = 0;
-                    if (objects.Count == 2)
-                    {
-                        radiusOffset = Math.PI / 4;
-                    }
-
-                    for (int i = 0; i < objects.Count; i++)
-                    {
-                        Point offset = new Point();
-                        double newX, newY;
-                        Object oj = objects[i];
-                        Point p = nodePoints[oj];
-                        newX = avgX + 10 * objects.Count * Math.Cos(step * i + radiusOffset);
-                        newY = avgY + 10 * objects.Count * Math.Sin(step * i + radiusOffset);
-                        offset.X = newX - p.X;
-                        offset.Y = newY - p.Y;
-                        nodePoints[oj] = offset;
-                    }
-                }
-            }
-
-            // Build controls for the data sources and data.
-            foreach (Object obj in visualsForSource.Keys)
-            {
-                string objType = visualsForSource[obj][0].objType;
-                string objName = visualsForSource[obj][0].objName;
-                StackPanel panel = null;
-                Point offset = new Point(0, 0);
-
-                foreach (Visual vis in visualsForSource[obj])
-                {
-                    UIElement control = MakeVisControl(vis);
-                    if (vis.positionAdvice.GetValue("XOffset") != null)
-                        offset.X = Convert.ToInt32(vis.positionAdvice.GetValue("XOffset"));
-                    if (vis.positionAdvice.GetValue("YOffset") != null)
-                        offset.Y = Convert.ToInt32(vis.positionAdvice.GetValue("YOffset"));
-
-                    if (control != null)
-                    {
-                        if ((vis.infoType == "label") ||
-                            (vis.infoType == "zoomButton") ||
-                            (vis.infoType == "icon") ||
-                            (vis.infoType == "scalar") ||
-                            (vis.infoType == "lineGraph"))
-                        {
-                            if (panel == null)
-                            {
-                                panel = new StackPanel();
-                                panel.Opacity = 0.7;
-                                panel.Background = new SolidColorBrush(Colors.LightGray);
-                            }
-                            panel.Children.Add(control);
-                        }
-                        else if (vis.infoType == "arc")
-                        {
-                            sliceMap.Children.Add(control);
-                        }
-
-                        if ((vis.statQuery != null) && (vis.statQuery != ""))
-                            updateQueue.Enqueue(vis);
-                        elements[vis].SetProperty(VisualElements.StatusAnimationTargetProperty, control);
-                    }
-                }
-
-                if (panel != null)
-                {
-                    Location location = GetLocation(objType, objName);
-                    overlayLayer.AddChild(panel, location, nodePoints[obj]);
-                    mapObjects.Add(obj, panel);
-                }
-            }
+            //update the visuals with (createControl == true)
+            //future updates will not need to create the controls again
+            UpdateVisuals(true);
         }
 
 
@@ -525,7 +595,7 @@ namespace GENIVisuals
         //
         private void LoadData(JsonValue completeResult, Visual vis)
         {
-            Stat myStat = elements[vis].GetProperty(VisualElements.StatisticsProperty) as Stat;
+            Stat myStat = m_elementsDic[vis].GetProperty(VisualElements.StatisticsProperty) as Stat;
 
             if (myStat != null)
             {
@@ -550,7 +620,7 @@ namespace GENIVisuals
             }
 
             // Requeue the query for later update.
-            updateQueue.Enqueue(vis);
+            m_updateQueue.Enqueue(vis);
         }
 
 
@@ -567,14 +637,14 @@ namespace GENIVisuals
                 allStatusInfo.Add(new StatusInfo(thisStatusJson));
 
             foreach (StatusInfo info in allStatusInfo)
-                foreach (Visual vis in visuals)
+                foreach (Visual vis in m_visuals)
                     if (vis.statusHandle == info.Handle)
                     {
-                        StatusInfo oldStatusInfo = elements[vis].GetProperty(VisualElements.StatusProperty) as StatusInfo;
+                        StatusInfo oldStatusInfo = m_elementsDic[vis].GetProperty(VisualElements.StatusProperty) as StatusInfo;
                         string oldStatus = "";
                         if (oldStatusInfo != null)
                             oldStatus = oldStatusInfo.Status;
-                        elements[vis].SetProperty(VisualElements.StatusProperty, info);
+                        m_elementsDic[vis].SetProperty(VisualElements.StatusProperty, info);
 
                         if (oldStatus != info.Status)
                             UpdateStoryboard(vis);
@@ -582,7 +652,7 @@ namespace GENIVisuals
 
             // Requeue the query for later update.
             // *** Sleazy to use null Visual for this purpose.
-            updateQueue.Enqueue(null);
+            m_updateQueue.Enqueue(null);
         }
 
 
@@ -591,7 +661,7 @@ namespace GENIVisuals
         //
         private void UpdateStoryboard(Visual vis)
         {
-            VisualElements info = elements[vis];
+            VisualElements info = m_elementsDic[vis];
             if (info == null)
                 return;
             Storyboard oldSb = info.GetProperty(VisualElements.StoryboardProperty) as Storyboard;
@@ -609,7 +679,7 @@ namespace GENIVisuals
                 oldSb.Stop();
             if (oldElementList != null)
                 foreach (UIElement element in oldElementList)
-                    overlayLayer.Children.Remove(element);
+                    m_overlayLayer.Children.Remove(element);
 
 
 
@@ -634,7 +704,7 @@ namespace GENIVisuals
                 newSb.Children.Add(animation);
 
                 // Attach to control
-                UIElement control = elements[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
+                UIElement control = m_elementsDic[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
                 if (control != null)
                 {
                     Storyboard.SetTarget(animation, control);
@@ -658,7 +728,7 @@ namespace GENIVisuals
                 newSb.Children.Add(animation);
 
                 // Attach to control
-                UIElement control = elements[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
+                UIElement control = m_elementsDic[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
                 if (control != null)
                 {
                     Storyboard.SetTarget(animation, control);
@@ -682,7 +752,7 @@ namespace GENIVisuals
                 newSb.Children.Add(animation);
 
                 // Attach to control
-                UIElement control = elements[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
+                UIElement control = m_elementsDic[vis].GetProperty(VisualElements.StatusAnimationTargetProperty) as UIElement;
                 if (control != null)
                 {
                     Storyboard.SetTarget(animation, control);
@@ -768,7 +838,7 @@ namespace GENIVisuals
         private List<UIElement> MakeBalls(Storyboard sb, Visual vis, string direction)
         {
             List<UIElement> result = new List<UIElement>();
-            MapPolyline pl = elements[vis].GetProperty(VisualElements.LinkPolyLineProperty) as MapPolyline;
+            MapPolyline pl = m_elementsDic[vis].GetProperty(VisualElements.LinkPolyLineProperty) as MapPolyline;
             Location startLoc;
 
             if ((pl == null) || (pl.Locations == null) || (pl.Locations.Count() == 0))
@@ -795,7 +865,7 @@ namespace GENIVisuals
                 ball.Height = 10;
                 Storyboard.SetTarget(animation, ball);
                 Storyboard.SetTargetProperty(animation, new PropertyPath(MapLayer.PositionOffsetProperty));
-                overlayLayer.AddChild(ball, startLoc, offset);
+                m_overlayLayer.AddChild(ball, startLoc, offset);
                 result.Add(ball);
 
                 //*** Experiment (delete me)
@@ -828,11 +898,11 @@ namespace GENIVisuals
                 return null;
 
             // Get link info.
-            Link thisLink = links[objName];
-            Location sourceLoc = new Location(nodes[thisLink.sourceNode].Latitude,
-                                                nodes[thisLink.sourceNode].Longitude);
-            Location destLoc = new Location(nodes[thisLink.destNode].Latitude,
-                                            nodes[thisLink.destNode].Longitude);
+            Link thisLink = m_linksDic[objName];
+            Location sourceLoc = new Location(m_nodesDic[thisLink.sourceNode].Latitude,
+                                                m_nodesDic[thisLink.sourceNode].Longitude);
+            Location destLoc = new Location(m_nodesDic[thisLink.destNode].Latitude,
+                                            m_nodesDic[thisLink.destNode].Longitude);
             if ((sourceLoc == null) || (destLoc == null))
                 return null;
 
@@ -898,16 +968,16 @@ namespace GENIVisuals
             // Currently only understand nodes and links.
             if (objType == "node")
             {
-                Node thisNode = nodes[objName];
+                Node thisNode = m_nodesDic[objName];
                 return new Location(thisNode.Latitude, thisNode.Longitude);
             }
             else if (objType == "link")
             {
-                Link thisLink = links[objName];
-                Location sourceLoc = new Location(nodes[thisLink.sourceNode].Latitude,
-                                                  nodes[thisLink.sourceNode].Longitude);
-                Location destLoc = new Location(nodes[thisLink.destNode].Latitude,
-                                                nodes[thisLink.destNode].Longitude);
+                Link thisLink = m_linksDic[objName];
+                Location sourceLoc = new Location(m_nodesDic[thisLink.sourceNode].Latitude,
+                                                  m_nodesDic[thisLink.sourceNode].Longitude);
+                Location destLoc = new Location(m_nodesDic[thisLink.destNode].Latitude,
+                                                m_nodesDic[thisLink.destNode].Longitude);
                 Point sPoint = sliceMap.LocationToViewportPoint(sourceLoc);
                 Point dPoint = sliceMap.LocationToViewportPoint(destLoc);
                 Point middle = new Point((sPoint.X + dPoint.X) / 2.0,
@@ -932,12 +1002,12 @@ namespace GENIVisuals
             if (vis.objType == "node")
             {
                 objectName = vis.objName;
-                obj = nodes[objectName];
+                obj = m_nodesDic[objectName];
             }
             else if (vis.objType == "link")
             {
                 objectName = vis.objName;
-                obj = links[objectName];
+                obj = m_linksDic[objectName];
             }
 
             if (obj == null)
@@ -948,18 +1018,33 @@ namespace GENIVisuals
             // *** that we're not stuck with this big if statement
             // *** and all this logic in one place.
 
-            // Is is a label?
+            // Is it a label?
             if (vis.infoType == "label")
             {
                 Label label = new Label();
                 label.Content = objectName;
-                label.Background = new SolidColorBrush(Colors.DarkGray);
-                label.Foreground = new SolidColorBrush(Colors.White);
+
+                if (objectName.StartsWith("NLR")) {
+                    label.Background = new SolidColorBrush(Colors.Yellow);
+                    label.Foreground = new SolidColorBrush(Colors.Black);
+                }
+                else if (objectName.StartsWith("I2"))
+                {
+                    label.Background = new SolidColorBrush(Colors.Green);
+                    label.Foreground = new SolidColorBrush(Colors.Black);
+                }
+                else
+                {
+                    label.Background = new SolidColorBrush(Colors.DarkGray);
+                    label.Foreground = new SolidColorBrush(Colors.White);
+                }
+                
                 control = label;
-                elements[vis].SetProperty(VisualElements.DataSourceLabelProperty, label);
+                m_elementsDic[vis].SetProperty(VisualElements.DataSourceLabelProperty, label);
             }
             else if (vis.infoType == "zoomButton")
             {
+                //TODO: need a different logic for button on a topology map
                 Button button = new Button();
                 button.Click += new RoutedEventHandler(labelButtonClick);
                 button.Content = objectName;
@@ -972,7 +1057,7 @@ namespace GENIVisuals
                 Image image = new Image();
                 image.Height = 50;
                 image.Width = 50;
-                string iconString = nodes[vis.objName].Icon;
+                string iconString = m_nodesDic[vis.objName].Icon;
                 if ((iconString != null) && (iconString != ""))
                 {
                     Uri imageSourceURI = new Uri(iconString);
@@ -993,7 +1078,7 @@ namespace GENIVisuals
                 MapPolyline arc;
                 arc = MakeArc(vis, vis.objType, vis.objName);
                 control = arc;
-                elements[vis].SetProperty(VisualElements.LinkPolyLineProperty, control);
+                m_elementsDic[vis].SetProperty(VisualElements.LinkPolyLineProperty, control);
             }
             // Is it a statitics graph?
             else if ((vis.infoType == "scalar") || (vis.infoType == "lineGraph"))
@@ -1035,12 +1120,12 @@ namespace GENIVisuals
                     // Remember and reuse chart for future
                     // line graphs for this object.
                     Chart ch = null;
-                    if (charts.ContainsKey(obj) && charts[obj] != null)
-                        ch = charts[obj];
+                    if (m_chartsDic.ContainsKey(obj) && m_chartsDic[obj] != null)
+                        ch = m_chartsDic[obj];
                     else
                     {
                         ch = new Chart();
-                        charts[obj] = ch;
+                        m_chartsDic[obj] = ch;
                         ch.Width = 300;
                         ch.Height = 200;
                         ch.LegendStyle = NoLegendStyle;
@@ -1078,7 +1163,7 @@ namespace GENIVisuals
                 }
 
                 if (control != null)
-                    elements[vis].SetProperty(VisualElements.StatisticsProperty, myStat);
+                    m_elementsDic[vis].SetProperty(VisualElements.StatisticsProperty, myStat);
             }
             // Other types of visual are unknown.
             else
@@ -1101,10 +1186,10 @@ namespace GENIVisuals
             // so that we can use the advice alist.
             // TODO: learn how to pass the visual along with e
             Visual vis = null;
-            foreach (Visual thisVis in visuals)
+            foreach (Visual thisVis in m_visuals)
             {
-                if (elements.ContainsKey(thisVis) &&
-                    elements[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
+                if (m_elementsDic.ContainsKey(thisVis) &&
+                    m_elementsDic[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
                 {
                     vis = thisVis;
                 }
@@ -1112,7 +1197,7 @@ namespace GENIVisuals
             // error if vis is null;
 
             // Make a new map window in a floatable child window.
-            SessionParameters newParams = new SessionParameters(parameters);
+            SessionParameters newParams = new SessionParameters(m_parameters);
 
             newParams.makePeriodicQuery = false;
             
@@ -1121,11 +1206,11 @@ namespace GENIVisuals
             List<Object> minimapLinks = new List<Object>();
             Collection<Visual> minimapVisuals = new Collection<Visual>();
 
-            if (nodes.Keys.Contains(objName))
+            if (m_nodesDic.Keys.Contains(objName))
             {
-                Node node = nodes[objName];
+                Node node = m_nodesDic[objName];
                 //find all the ndoes that are at the same coordinates
-                foreach (Node n in nodes.Values)
+                foreach (Node n in m_nodesDic.Values)
                 {
                     if (n.Latitude == node.Latitude && n.Longitude == n.Longitude)
                     {
@@ -1133,30 +1218,30 @@ namespace GENIVisuals
                     }
                 }
                 //find all the links that are incident to the colocated nodes
-                foreach (Link link in links.Values)
+                foreach (Link link in m_linksDic.Values)
                 {
                     foreach (Object n in minimapNodes)
                     {
                         //only edges with both ends inside the topology map are added.
-                        if (minimapNodes.Contains(nodes[link.destNode]) && minimapNodes.Contains(nodes[link.sourceNode]))
+                        if (minimapNodes.Contains(m_nodesDic[link.destNode]) && minimapNodes.Contains(m_nodesDic[link.sourceNode]))
                         {
                             minimapLinks.Add(link);
                         }
                     }
                 }
                 //find all the visuals that are associated to the found links and nodes
-                foreach (Object obj in visualsForSource.Keys)
+                foreach (Object obj in m_visualsForSourceDic.Keys)
                 {
                     if (minimapNodes.Contains(obj))
                     {
-                        foreach (Visual v in visualsForSource[obj])
+                        foreach (Visual v in m_visualsForSourceDic[obj])
                         {
                             minimapVisuals.Add(v);
                         }
                     }
                     else if (minimapLinks.Contains(obj))
                     {
-                        foreach (Visual v in visualsForSource[obj])
+                        foreach (Visual v in m_visualsForSourceDic[obj])
                         {
                             minimapVisuals.Add(v);
                         }
@@ -1255,10 +1340,10 @@ namespace GENIVisuals
         // Don't make data queries any more frequently than this timer.
         private void SetupDataUpdates()
         {
-            if (parameters.makePeriodicQuery)
+            if (m_parameters.makePeriodicQuery)
             {
                 DispatcherTimer dt = new DispatcherTimer();
-                if (parameters.useDebugServer)
+                if (m_parameters.useDebugServer)
                     dt.Interval = new TimeSpan(0, 0, 0, 0, 500); // dy, hr, min, sec, ms
                 else
                     dt.Interval = new TimeSpan(0, 0, 0, 0, 250); // dy, hr, min, sec, ms
@@ -1271,10 +1356,10 @@ namespace GENIVisuals
         // Send a data query for the next item in the queue.
         private void RequestNextUpdate(object sender, EventArgs e)
         {
-            if (wc.IsBusy || (updateQueue.Count <= 0))
+            if (m_webClient.IsBusy || (m_updateQueue.Count <= 0))
                 return;
 
-            Visual vis = updateQueue.Dequeue();
+            Visual vis = m_updateQueue.Dequeue();
 
             // Build URI for query.
             string scriptName = "";
@@ -1286,23 +1371,23 @@ namespace GENIVisuals
             if (vis == null)
             {
                 scriptName = "get_status.php";
-                if ((URIParams != null) && (URIParams != ""))
-                    scriptParams = URIParams;
+                if ((m_URIParams != null) && (m_URIParams != ""))
+                    scriptParams = m_URIParams;
             }
             else
             {
                 scriptName = "get_data.php";
                 string statQuery = vis.statQuery;
-                if ((URIParams != null) && (URIParams != ""))
-                    scriptParams = URIParams + "&statQuery=" + statQuery;
+                if ((m_URIParams != null) && (m_URIParams != ""))
+                    scriptParams = m_URIParams + "&statQuery=" + statQuery;
                 else
                     scriptParams = "?statQuery=" + statQuery;
             }
 
             // Issue query for data needed.             
 
-            queryURI = new Uri(phpBase + scriptName + scriptParams);
-            wc.DownloadStringAsync(queryURI, vis);
+            queryURI = new Uri(m_phpBase + scriptName + scriptParams);
+            m_webClient.DownloadStringAsync(queryURI, vis);
         }
 
 
@@ -1318,9 +1403,9 @@ namespace GENIVisuals
         // Put in random data to get some action on the screen.
         private void UpdateWithBogusData(object sender, EventArgs e)
         {
-            foreach (Visual vis in elements.Keys)
+            foreach (Visual vis in m_elementsDic.Keys)
             {
-                Stat thisStat = elements[vis].GetProperty(VisualElements.StatisticsProperty) as Stat;
+                Stat thisStat = m_elementsDic[vis].GetProperty(VisualElements.StatisticsProperty) as Stat;
 
                 if (thisStat != null)
                 {
@@ -1335,13 +1420,13 @@ namespace GENIVisuals
                     if (thisStat.history > 0)
                     {
                         DateTime now = DateTime.Now;
-                        thisStat.addValue(now, myRandom.Next((int)minValue, (int)maxValue));
+                        thisStat.addValue(now, m_random.Next((int)minValue, (int)maxValue));
                     }
                     else
                     {
                         double newValue = thisStat.currentValue -
                                           ((maxValue - minValue) / 2.0) +
-                                          myRandom.Next((int)minValue, (int)maxValue);
+                                          m_random.Next((int)minValue, (int)maxValue);
                         if (newValue > maxValue)
                             newValue = maxValue;
                         if (newValue < minValue)
@@ -1355,8 +1440,8 @@ namespace GENIVisuals
         // If map view changes, need to refresh all animations.
         private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
         {
-            UpdateVisuals();
-            foreach (Visual vis in elements.Keys) // why not "in visuals"?
+            UpdateVisuals(false);
+            foreach (Visual vis in m_elementsDic.Keys) // why not "in visuals"?
                 UpdateStoryboard(vis);
         }
 
