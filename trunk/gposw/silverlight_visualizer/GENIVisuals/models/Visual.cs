@@ -28,6 +28,10 @@ namespace GENIVisuals.models
         public string renderAdvice { get; set; }        
         public Alist positionAdvice { get; set; }
 
+        public Visual() {
+            positionAdvice = new Alist();
+        }
+
         public Visual(JsonValue visualJson)
         {
             // Parse visual content out of JSON
