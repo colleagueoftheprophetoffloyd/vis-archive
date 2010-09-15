@@ -311,49 +311,52 @@ namespace GENIVisuals
                 double verticalOfst = mapHeight / 3;
                 double horizontalOfst = mapWidth / 3;
                 Point ofst = new Point(0, 0);
-                if (renderAdvice.ToLower() == "north")
+                if (renderAdvice != null)
                 {
-                    ofst.Y -= verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "south")
-                {
-                    ofst.Y += verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "west")
-                {
-                    ofst.X -= horizontalOfst;
-                }
-                else if (renderAdvice.ToLower() == "east")
-                {
-                    ofst.X += horizontalOfst;
-                }
-                else if (renderAdvice.ToLower() == "northeast")
-                {
-                    ofst.X += horizontalOfst;
-                    ofst.Y -= verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "northwest")
-                {
-                    ofst.X -= horizontalOfst;
-                    ofst.Y -= verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "southeast")
-                {
-                    ofst.X += horizontalOfst;
-                    ofst.Y += verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "southwest")
-                {
-                    ofst.X -= horizontalOfst;
-                    ofst.Y += verticalOfst;
-                }
-                else if (renderAdvice.ToLower() == "center")
-                {
-                    //do nothing. used (0,0) as the offset.
-                }
-                else
-                {
-                    //TODO: unknown render adivce.
+                    if (renderAdvice.ToLower() == "north")
+                    {
+                        ofst.Y -= verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "south")
+                    {
+                        ofst.Y += verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "west")
+                    {
+                        ofst.X -= horizontalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "east")
+                    {
+                        ofst.X += horizontalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "northeast")
+                    {
+                        ofst.X += horizontalOfst;
+                        ofst.Y -= verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "northwest")
+                    {
+                        ofst.X -= horizontalOfst;
+                        ofst.Y -= verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "southeast")
+                    {
+                        ofst.X += horizontalOfst;
+                        ofst.Y += verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "southwest")
+                    {
+                        ofst.X -= horizontalOfst;
+                        ofst.Y += verticalOfst;
+                    }
+                    else if (renderAdvice.ToLower() == "center")
+                    {
+                        //do nothing. used (0,0) as the offset.
+                    }
+                    else
+                    {
+                        //TODO: unknown render adivce.
+                    }
                 }
 
                 return ofst;
@@ -492,7 +495,7 @@ namespace GENIVisuals
                                 (vis.infoType == "zoomButton") ||
                                 (vis.infoType == "icon") ||
                                 (vis.infoType == "scalar") ||
-                                (vis.infoType == "lineGraph"))
+                                (vis.infoType == "lineGraph") || (vis.infoType == "amChart"))
                             {
                                 if (panel == null)
                                 {
@@ -1050,6 +1053,23 @@ namespace GENIVisuals
                 button.Content = objectName;
                 control = button;
             }
+            else if (vis.infoType == "amChart")
+            {
+                //TODO: need a different logic for button on a topology map
+                Button button = new Button();
+                button.Click += new RoutedEventHandler(amChartButtonClick);
+                button.Content = objectName;
+                LinearGradientBrush myLinearGradientBrush = new LinearGradientBrush();
+                myLinearGradientBrush.StartPoint = new Point(0,0);
+                myLinearGradientBrush.EndPoint = new Point(1,1);
+                GradientStop stop = new GradientStop();
+                stop.Color = Colors.Red;
+                stop.Offset = 0.25;
+                myLinearGradientBrush.GradientStops.Add(stop);
+
+                button.Background = myLinearGradientBrush;
+                control = button;
+            }
             // Is it an icon?
             else if ((vis.infoType == "icon") &&
                      (vis.objType == "node"))
@@ -1146,7 +1166,7 @@ namespace GENIVisuals
                     // Set axis properties.  *** Rewrite this search
                     DateTimeAxis timeAxis = null;
                     foreach (Axis thisAxis in ch.Axes)
-                        if (thisAxis.Name == "time")
+                        if (thisAxis.Name == "time") 
                             timeAxis = thisAxis as DateTimeAxis;
                     if (timeAxis == null)
                     {
@@ -1174,6 +1194,47 @@ namespace GENIVisuals
 
 
             return control;
+        }
+
+        void amChartButtonClick(object sender, RoutedEventArgs e)
+        {            // Find the associated visual (gotta be a better way),
+            // so that we can use the advice alist.
+            // TODO: learn how to pass the visual along with e
+            Visual vis = null;
+            foreach (Visual thisVis in m_visuals)
+            {
+                if (m_elementsDic.ContainsKey(thisVis) &&
+                    m_elementsDic[thisVis].GetProperty(VisualElements.StatusAnimationTargetProperty) == sender)
+                {
+                    vis = thisVis;
+                }
+            }
+
+            String objName = ((Button)sender).Content.ToString();
+
+            FloatableWindow fw = new FloatableWindow();
+            fw.ResizeMode = ResizeMode.CanResize;
+
+            ChartPage newpage = new ChartPage();
+            newpage.Title = objName;
+
+            fw.Height = 500;
+            fw.Width = 800;
+
+            Location center = GetLocation(vis.objType, vis.objName);
+
+            fw.Title = m_parameters.slice;
+            fw.Content = newpage;
+
+            fw.SetValue(Grid.RowProperty, 1);
+            fw.SetValue(Grid.ColumnProperty, 1);
+            fw.SetValue(Grid.RowSpanProperty, 1);
+            fw.SetValue(Grid.ColumnSpanProperty, 1);
+
+            // Position popup.
+            fw.ParentLayoutRoot = mapCanvas;
+            Point centerPoint = sliceMap.LocationToViewportPoint(center);
+            fw.Show(centerPoint.X, centerPoint.Y);
         }
 
 
@@ -1270,8 +1331,9 @@ namespace GENIVisuals
 
             FloatableWindow fw = new FloatableWindow();
             fw.ResizeMode = ResizeMode.CanResize;
-            fw.Height = 200;
-            fw.Width = 200;
+
+            fw.Height = 250;
+            fw.Width = 250;
 
             MainPage mp = new MainPage(newParams);
             Location center = GetLocation(vis.objType, vis.objName);
