@@ -60,9 +60,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FloatableWindow">
-      <HintPath>..\FloatableWindow.dll</HintPath>
+    <Reference Include="AmCharts.Windows.QuickCharts.SL">
+      <HintPath>lib\AmCharts.Windows.QuickCharts.SL.dll</HintPath>
     </Reference>
+    <Reference Include="FloatableWindow, Version=2.0.5.0, Culture=neutral, PublicKeyToken=dd6e2c92abf74ba1, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.Maps.MapControl">
       <HintPath>..\..\..\..\..\..\..\Program Files\Bing Maps Silverlight Control\V1\Libraries\Microsoft.Maps.MapControl.dll</HintPath>
     </Reference>
@@ -86,6 +87,9 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ChartPage.xaml.cs">
+      <DependentUpon>ChartPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="InsetMap.xaml.cs">
       <DependentUpon>InsetMap.xaml</DependentUpon>
     </Compile>
@@ -99,6 +103,7 @@
     <Compile Include="models\Link.cs" />
     <Compile Include="models\Node.cs" />
     <Compile Include="models\NodeStats.cs" />
+    <Compile Include="models\SampleDataLayer.cs" />
     <Compile Include="models\SessionParameters.cs" />
     <Compile Include="models\Stat.cs" />
     <Compile Include="models\StatCollection.cs" />
@@ -125,6 +130,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <None Include="pageviewsvisitors.csv" />
     <None Include="Properties\AppManifest.xml" />
   </ItemGroup>
   <ItemGroup>
@@ -152,6 +158,12 @@
     <Page Include="InsetMap.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="ChartPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Silverlight\$(SilverlightVersion)\Microsoft.Silverlight.CSharp.targets" />

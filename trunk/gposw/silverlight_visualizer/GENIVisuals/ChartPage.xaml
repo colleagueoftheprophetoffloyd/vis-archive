@@ -71,8 +71,8 @@
                         </amq:ColumnGraph.Brush>
                     </amq:ColumnGraph>
                     <amq:AreaGraph ValueMemberPath="Metric1" Title="Visitors" Brush="#800974DE" /-->
-                    <amq:LineGraph ValueMemberPath="TxThroughput" Title="TX throughput" StrokeThickness="3" />
-                    <amq:LineGraph ValueMemberPath="RxThroughput" Title="RX throughput" StrokeThickness="3" />
+                    <amq:LineGraph x:Name="lineGraph1" ValueMemberPath="TxThroughput" Title="TX throughput" StrokeThickness="3" />
+                    <amq:LineGraph x:Name="lineGraph2" ValueMemberPath="RxThroughput" Title="RX throughput" StrokeThickness="3" />
                 </amq:SerialChart.Graphs>
             </amq:SerialChart>
             <Button Content="Pause" Grid.Row="1" Height="32" HorizontalAlignment="Left" Margin="540,296,0,0" Name="pauseButton" VerticalAlignment="Top" Width="65" Click="pauseButton_Click" />
