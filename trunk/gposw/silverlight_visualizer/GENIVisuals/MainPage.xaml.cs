@@ -25,6 +25,9 @@ namespace GENIVisuals
 {
     public partial class MainPage : UserControl
     {
+        /* the parameters we use to initialize the instance of this class. Possible passed in
+         * from the login page
+         */
         private SessionParameters m_parameters;
         private string m_URIParams = "";
         WebClient m_webClient = new WebClient();
@@ -33,9 +36,12 @@ namespace GENIVisuals
 
         // All the {visuals, nodes, links} we care about.
         private Collection<Visual> m_visuals = new Collection<Visual>();
+        /* map from node names to Node objects*/
         private Dictionary<string, Node> m_nodesDic = new Dictionary<string, Node>();
+        /* map from link names to Link objects*/
         private Dictionary<string, Link> m_linksDic = new Dictionary<string, Link>();
 
+        // List of NLR and Internet2 nodes. Map from their names to the Node object.
         private Dictionary<string, Node> m_nlrNodesDic = new Dictionary<string,Node>();
         private Dictionary<string, Node> m_i2NodesDic = new Dictionary<string,Node>();
         
@@ -48,18 +54,24 @@ namespace GENIVisuals
 
         // The list of all visuals for updating.
         private Queue<Visual> m_updateQueue = new Queue<Visual>();
+        /* map each node to its corresponding offset. The offsets of the arcs are computed based
+         * on their endpoints 
+         */
         private Dictionary<Object, Point> m_nodeOffsetsDic = new Dictionary<Object, Point>();
-        private Dictionary<Point, List<Object>> m_overlappedObjectsDic = new Dictionary<Point, List<Object>>();
+        /* map nodes that are colocated at the same point on the map*/
+        private Dictionary<Point, List<Object>> m_overlappedNodesDic = new Dictionary<Point, List<Object>>();
+        /* map nodes/links to the UIElement. Used in UpdateVisuals to update the offsets of the UIElements*/
         private Dictionary<Object, UIElement> m_mapObjectsDic = new Dictionary<Object, UIElement>();
         // Map from data sources (nodes, links) to their associated visuals.
         Dictionary<Object, List<Visual>> m_visualsForSourceDic = new Dictionary<Object, List<Visual>>();
 
         private MapLayer m_overlayLayer = null;
         private Random m_random = new Random();
-
+        /* radius of the circle we arrange overlapped nodes on */
         double m_radius = 10;
+        /* the radius within which we would consider two nodes overlap */
         double m_radiusForRearrangement = 40;
-
+        /* TODO: half a label's width. Should use the actual value rather than this constant */
         private double LABEL_WIDTH = 30.0;
 
         public MainPage(SessionParameters myparams)
@@ -135,12 +147,15 @@ namespace GENIVisuals
             }
             else
             {
+                /* if we are showing the small topology map, we use the passed in nodes and links rather than
+                 * querying the database for their information again */
                 this.m_visuals = m_parameters.topologyVisuals;
                 this.m_nodesDic = m_parameters.topologyNodes;
                 this.m_linksDic = m_parameters.topologyLinks;
                 DisplayVisuals();
-                SetupDataUpdates();
-                m_updateQueue.Enqueue(null); // setup status updates
+                /* uncomment the follow two lines if animations is needed on the topology map */
+                //SetupDataUpdates();
+                //m_updateQueue.Enqueue(null); // setup status updates
             }
         }
 
@@ -369,13 +384,11 @@ namespace GENIVisuals
 
         }
 
-        //
-        // Parse visuals content out of JSON and remember the
-        // requested visual display parameters.
-        //
+        /* Update the offset of the visuals according to the zoom-level of the map and whether we are displaying
+         * the topology map */
         private void UpdateVisuals(bool createControl)
         {
-            m_overlappedObjectsDic.Clear();
+            m_overlappedNodesDic.Clear();
             m_nodeOffsetsDic.Clear();
 
             //initialize the offs
@@ -403,11 +416,11 @@ namespace GENIVisuals
                         //if this new obejct is within a circle of a radius of 20 of an previous object,
                         //add it to the area of the previous object
                         bool added = false;
-                        foreach (Point point in m_overlappedObjectsDic.Keys)
+                        foreach (Point point in m_overlappedNodesDic.Keys)
                         {
                             if (Distance(newPoint, point) <= m_radiusForRearrangement)
                             {
-                                m_overlappedObjectsDic[point].Add(obj);
+                                m_overlappedNodesDic[point].Add(obj);
                                 added = true;
                                 continue;
                             }
@@ -417,18 +430,18 @@ namespace GENIVisuals
                         {
                             List<Object> newList = new List<object>();
                             newList.Add(obj);
-                            m_overlappedObjectsDic.Add(newPoint, newList);
+                            m_overlappedNodesDic.Add(newPoint, newList);
                         }
                     }
                 }
 #if DEBUG
-                infoLabel.Content = m_overlappedObjectsDic.Count;
+                infoLabel.Content = m_overlappedNodesDic.Count;
 #endif
 
                 //for each group of objects that are nearby, spread them over a circle with a radius of 20 around their geometric center.
-                foreach (Point point in m_overlappedObjectsDic.Keys)
+                foreach (Point point in m_overlappedNodesDic.Keys)
                 {
-                    List<Object> objects = m_overlappedObjectsDic[point];
+                    List<Object> objects = m_overlappedNodesDic[point];
                     if (objects.Count >= 2)
                     {
                         double avgX = 0, avgY = 0;
@@ -480,7 +493,7 @@ namespace GENIVisuals
                 string objType = m_visualsForSourceDic[obj][0].objType;
                 string objName = m_visualsForSourceDic[obj][0].objName;
                 Location location = GetLocation(objType, objName);
-
+                /* we create the controls when UpdateVisual is invoked from within DisplayVisuals()*/
                 if (createControl)
                 {
                     StackPanel panel = null;
@@ -513,7 +526,6 @@ namespace GENIVisuals
                             else if (vis.infoType == "arc")
                             {
                                 sliceMap.Children.Add(control);
-                                //m_overlayLayer.AddChild(control, location);
                                 m_mapObjectsDic.Add(obj, control);
                             }
 
@@ -530,6 +542,9 @@ namespace GENIVisuals
                         m_mapObjectsDic.Add(obj, panel);
                     }
                 }
+                /* otherwise, UpdateVisuals is called from the event slicemap_ViewChangeEnd(). We do not re-create
+                 * the controls here.
+                 */  
                 else
                 {
                     if (m_mapObjectsDic.Keys.Contains(obj))
@@ -537,6 +552,7 @@ namespace GENIVisuals
                         UIElement el = m_mapObjectsDic[obj];
                         if (el != null)
                         {
+
                             if (m_nodeOffsetsDic.Keys.Contains(obj) && m_visualsForSourceDic[obj][0].objType == "node")
                             {
                                 Point ofst = FindOffset(obj);
@@ -556,6 +572,7 @@ namespace GENIVisuals
                                     control = arc;
                                     m_elementsDic[vis].SetProperty(VisualElements.LinkPolyLineProperty, control);
                                     m_elementsDic[vis].SetProperty(VisualElements.StatusAnimationTargetProperty, control);
+                                    m_mapObjectsDic[obj] = control;
                                     sliceMap.Children.Remove(el);
                                     sliceMap.Children.Add(control);
                                 }
