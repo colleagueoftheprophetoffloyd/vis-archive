@@ -60,6 +60,8 @@ namespace GENIVisuals
         double m_radius = 10;
         double m_radiusForRearrangement = 40;
 
+        private double LABEL_WIDTH = 30.0;
+
         public MainPage(SessionParameters myparams)
         {
             InitializeComponent();
@@ -299,6 +301,8 @@ namespace GENIVisuals
         //there are more than 9 nodes, we should fall back to the auto-organize scheme.
         private Point FindOffset(object obj)
         {
+            //only follow the render directions, such as "north" and "southeast", when
+            //we are working on a topology map.
             if (m_parameters.topologyVisuals.Count == 0)
             {
                 return m_nodeOffsetsDic[obj];
@@ -310,7 +314,8 @@ namespace GENIVisuals
                 double mapWidth = this.ActualWidth;
                 double verticalOfst = mapHeight / 3;
                 double horizontalOfst = mapWidth / 3;
-                Point ofst = new Point(0, 0);
+                /*the -50 initial offset is for the length of the label*/
+                Point ofst = new Point(-LABEL_WIDTH, 0);
                 if (renderAdvice != null)
                 {
                     if (renderAdvice.ToLower() == "north")
@@ -508,6 +513,8 @@ namespace GENIVisuals
                             else if (vis.infoType == "arc")
                             {
                                 sliceMap.Children.Add(control);
+                                //m_overlayLayer.AddChild(control, location);
+                                m_mapObjectsDic.Add(obj, control);
                             }
 
                             if ((vis.statQuery != null) && (vis.statQuery != ""))
@@ -525,15 +532,34 @@ namespace GENIVisuals
                 }
                 else
                 {
-                    if (m_mapObjectsDic.Keys.Contains(obj) && m_nodeOffsetsDic.Keys.Contains(obj))
+                    if (m_mapObjectsDic.Keys.Contains(obj))
                     {
                         UIElement el = m_mapObjectsDic[obj];
                         if (el != null)
                         {
-                            Point ofst = FindOffset(obj);
-                            m_overlayLayer.Children.Remove(el);
-                            m_overlayLayer.AddChild(el, location, ofst);
-                            m_overlayLayer.UpdateLayout();
+                            if (m_nodeOffsetsDic.Keys.Contains(obj) && m_visualsForSourceDic[obj][0].objType == "node")
+                            {
+                                Point ofst = FindOffset(obj);
+                                m_overlayLayer.Children.Remove(el);
+                                m_overlayLayer.AddChild(el, location, ofst);
+                                m_overlayLayer.UpdateLayout();
+                            }
+                            else if (m_visualsForSourceDic[obj][0].infoType == "arc")
+                            {
+                                Link thisLink = (Link)obj;
+                                if (m_parameters.topologyVisuals.Count > 0)
+                                {
+                                    Visual vis = m_visualsForSourceDic[obj][0];
+                                    UIElement control;
+                                    MapPolyline arc;
+                                    arc = MakeArc(vis, vis.objType, vis.objName);
+                                    control = arc;
+                                    m_elementsDic[vis].SetProperty(VisualElements.LinkPolyLineProperty, control);
+                                    m_elementsDic[vis].SetProperty(VisualElements.StatusAnimationTargetProperty, control);
+                                    sliceMap.Children.Remove(el);
+                                    sliceMap.Children.Add(control);
+                                }
+                            }
                         }
                     }
                 }
@@ -945,8 +971,27 @@ namespace GENIVisuals
             LocationCollection arcPoints = new LocationCollection();
             Point sPoint = sliceMap.LocationToViewportPoint(sourceLoc);
             Point dPoint = sliceMap.LocationToViewportPoint(destLoc);
+
+            //TODO: the handling here is narrow and only works with
+            //the current LABEL_WIDTH. Need more general handling here.
+            if (m_parameters.topologyVisuals.Count > 0)
+            {
+                Node srcNode = m_nodesDic[thisLink.sourceNode];
+                Node destNode = m_nodesDic[thisLink.destNode];
+                Point ofst = FindOffset(srcNode);
+                sPoint.X += ofst.X + LABEL_WIDTH;
+                sPoint.Y += ofst.Y;
+
+                ofst = FindOffset(destNode);
+                dPoint.X += ofst.X + LABEL_WIDTH;
+                dPoint.Y += ofst.Y;
+
+            }
+
+
             double xDist = dPoint.X - sPoint.X;
             double yDist = dPoint.Y - sPoint.Y;
+
             double length = Math.Sqrt(xDist * xDist + yDist * yDist);
             double normalAngle = Math.Atan2(yDist, xDist) + normalOffset;
             double normalDist = bendFactor * length;
@@ -1021,8 +1066,8 @@ namespace GENIVisuals
             // *** that we're not stuck with this big if statement
             // *** and all this logic in one place.
 
-            // Is it a label?
-            if (vis.infoType == "label")
+            // Is it a label? Treat a button like a label when it's on a topology map.
+            if (vis.infoType == "label" || (m_parameters.topologyVisuals.Count > 0 && vis.infoType == "zoomButton"))
             {
                 Label label = new Label();
                 label.Content = objectName;
@@ -1047,7 +1092,6 @@ namespace GENIVisuals
             }
             else if (vis.infoType == "zoomButton")
             {
-                //TODO: need a different logic for button on a topology map
                 Button button = new Button();
                 button.Click += new RoutedEventHandler(labelButtonClick);
                 button.Content = objectName;
@@ -1286,7 +1330,10 @@ namespace GENIVisuals
                         //only edges with both ends inside the topology map are added.
                         if (minimapNodes.Contains(m_nodesDic[link.destNode]) && minimapNodes.Contains(m_nodesDic[link.sourceNode]))
                         {
-                            minimapLinks.Add(link);
+                            if (!minimapLinks.Contains(link))
+                            {
+                                minimapLinks.Add(link);
+                            }
                         }
                     }
                 }
@@ -1310,6 +1357,7 @@ namespace GENIVisuals
                 }
                 newParams.topologyVisuals = minimapVisuals;
 
+                //creates the mapping between names and nodes/links
                 foreach (Object oj in minimapNodes)
                 {
                     Node n = (Node)oj;
