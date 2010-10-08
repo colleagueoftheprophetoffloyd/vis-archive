@@ -3,6 +3,7 @@
 $mysql_visualsTable  = "visuals";
 $mysql_IDCol = "id";
 $mysql_sliceNameCol = "sliceName";
+$mysql_subSliceCol = "subSlice";
 $mysql_sequenceCol = "sequence";
 $mysql_infoTypeCol = "infoType";
 $mysql_objTypeCol = "objType";
@@ -13,6 +14,5 @@ $mysql_minValueCol = "minValue";
 $mysql_maxValueCol = "maxValue";
 $mysql_statQueryCol = "statQuery";
 $mysql_statusHandleCol = "statusHandle";
-$mysql_renderAdviceCol = "renderAdvice";
-$mysql_positionAdviceCol = "positionAdvice";
+$mysql_renderAttributesCol = "renderAttributes";
 ?>

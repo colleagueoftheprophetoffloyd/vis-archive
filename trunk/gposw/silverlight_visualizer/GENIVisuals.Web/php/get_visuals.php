@@ -14,6 +14,7 @@ while($itemRow = mysql_fetch_array($result))
   $visualArray[] = array(
 	$mysql_IDCol => $itemRow[$mysql_IDCol],
 	$mysql_sliceNameCol => $itemRow[$mysql_sliceNameCol],	
+	$mysql_subSliceCol => $itemRow[$mysql_subSliceCol],	
 	$mysql_sequenceCol => $itemRow[$mysql_sequenceCol],
 	$mysql_infoTypeCol => $itemRow[$mysql_infoTypeCol],
 	$mysql_objTypeCol => $itemRow[$mysql_objTypeCol],
@@ -24,8 +25,7 @@ while($itemRow = mysql_fetch_array($result))
 	$mysql_maxValueCol => $itemRow[$mysql_maxValueCol],
 	$mysql_statQueryCol => $itemRow[$mysql_statQueryCol],
   $mysql_statusHandleCol => $itemRow[$mysql_statusHandleCol],
-  $mysql_renderAdviceCol => $itemRow[$mysql_renderAdviceCol],
-  $mysql_positionAdviceCol => $itemRow[$mysql_positionAdviceCol]
+  $mysql_renderAttributesCol => $itemRow[$mysql_renderAttributesCol]
 	);
 }
 mysql_close($connection);
