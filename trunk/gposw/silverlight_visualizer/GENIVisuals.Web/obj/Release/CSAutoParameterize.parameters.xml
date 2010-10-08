@@ -1,6 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<parameters>
-  <parameter name="InstrumentDataConnectionString-Web.config Connection String" description="InstrumentDataConnectionString Connection String used in web.config by the application to access the database." defaultvalue="Data Source=.\SQLEXPRESS;AttachDbFilename=|DataDirectory|\InstrumentData.mdf;Integrated Security=True;Connect Timeout=30;User Instance=True" tags="SqlConnectionString">
-    <parameterEntry kind="XmlFile" scope="obj\\Release\\Package\\PackageTmp\\Web\.config$" match="/configuration/connectionStrings/add[@name='InstrumentDataConnectionString']/@connectionString" />
-  </parameter>
-</parameters>
