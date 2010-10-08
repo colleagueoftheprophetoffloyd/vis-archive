@@ -6,15 +6,8 @@
     xmlns:m="clr-namespace:Microsoft.Maps.MapControl;assembly=Microsoft.Maps.MapControl"
     xmlns:toolkit="http://schemas.microsoft.com/winfx/2006/xaml/presentation/toolkit"
     mc:Ignorable="d"
-    d:DesignHeight="300" d:DesignWidth="400" xmlns:sdk="http://schemas.microsoft.com/winfx/2006/xaml/presentation/sdk" Loaded="UserControl_Loaded">
+    d:DesignHeight="300" d:DesignWidth="400" xmlns:sdk="http://schemas.microsoft.com/winfx/2006/xaml/presentation/sdk">
     <UserControl.Resources>
-        <Style x:Name="NoLegendStyle" TargetType="toolkit:Legend">
-            <Setter Property="Width" Value="0"/>
-            <Setter Property="Height" Value="0"/>
-        </Style>
-        <Style x:Name="TimeLabelStyle" TargetType="toolkit:DateTimeAxisLabel">
-            <Setter Property="StringFormat" Value="{}{0:HH:mm}"/>
-        </Style>
         <LinearGradientBrush x:Name="linkBrush2" StartPoint="0.5,0" EndPoint="0.5,1">
             <GradientStop Color="Yellow" Offset="0.0" />
             <GradientStop Color="Red" Offset="0.25" />
@@ -45,7 +38,10 @@
         <Image HorizontalAlignment="Stretch" Name="image1" Source="http://www.geni.net/wp-content/themes/iBeam-CMS/img/header-home.jpg" Stretch="Fill" UseLayoutRounding="True" VerticalAlignment="Stretch" Grid.Column="1" Grid.RowSpan="2" />
         <sdk:Label Name="infoLabel" VerticalAlignment="Bottom" HorizontalContentAlignment="Right" VerticalContentAlignment="Bottom" Grid.Row="0" Height="18" />
         <sdk:Label Name="sliceLabel" VerticalAlignment="Bottom" HorizontalContentAlignment="Right" VerticalContentAlignment="Bottom" Content="Slice" Grid.Row="1" Height="18" />
-        <m:Map Grid.Row="2" Grid.ColumnSpan="3" CredentialsProvider="AmW6NdmLUEpHsmyKPZdz4w6D0HiCMeOiLl7Gs8PzyTYzTDdaNsmaPVHZzv6nkLgJ" Name="sliceMap" Mode="Aerial" NavigationVisibility="Collapsed" LogoVisibility="Collapsed" ScaleVisibility="Collapsed" CopyrightVisibility="Collapsed" ViewChangeEnd="sliceMap_ViewChangeEnd" />
+        <m:Map Grid.Row="2" Grid.ColumnSpan="3" CredentialsProvider="AmW6NdmLUEpHsmyKPZdz4w6D0HiCMeOiLl7Gs8PzyTYzTDdaNsmaPVHZzv6nkLgJ" Name="sliceMap" Mode="Aerial" NavigationVisibility="Collapsed" LogoVisibility="Collapsed" ScaleVisibility="Collapsed" CopyrightVisibility="Collapsed" ViewChangeEnd="sliceMap_ViewChangeEnd">
+            <m:MapLayer x:Name="BlackLayer" Background="Black" Opacity="0" />
+            <m:MapLayer x:Name="OverlayLayer" />
+        </m:Map>
         <Canvas x:Name="mapCanvas" Grid.Row="2" Grid.ColumnSpan="3" >
         </Canvas>
     </Grid>

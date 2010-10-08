@@ -15,6 +15,8 @@ namespace GENIVisuals.models
 {
     public class Visual
     {
+        public string sliceName { get; set; }
+        public string subSlice { get; set; }
         public int sequence { get; set; } // Order in which to display items
         public string infoType { get; set; } // Type of visual (status, numeric)
         public string objType { get; set; } // Type of data source (node, link)
@@ -25,54 +27,51 @@ namespace GENIVisuals.models
         public Nullable<double> maxValue { get; set; }
         public string statQuery { get; set; }
         public string statusHandle { get; set; }
-        public string renderAdvice { get; set; }        
-        public Alist positionAdvice { get; set; }
-
-        public Visual() {
-            positionAdvice = new Alist();
-        }
+        public Alist renderAttributes { get; set; }
 
         public Visual(JsonValue visualJson)
         {
             // Parse visual content out of JSON
             // Ignoring id and sliceName fields from database.
 
+            if (visualJson["sliceName"] != null)
+                sliceName = ((string) visualJson["sliceName"]).Trim();
+            if (visualJson["subSlice"] != null)
+                subSlice = ((string) visualJson["subSlice"]).Trim();
             if (visualJson["sequence"] != null)
-                sequence = Convert.ToInt32(visualJson["sequence"].ToString().Replace('"', ' ').Trim());
+                sequence = Convert.ToInt32((string) visualJson["sequence"]);
             if (visualJson["infoType"] != null)
-                infoType = visualJson["infoType"].ToString().Replace('"', ' ').Trim();
+                infoType = ((string) visualJson["infoType"]).Trim();
             if (visualJson["objType"] != null)
-                objType = visualJson["objType"].ToString().Replace('"', ' ').Trim();
+                objType = ((string) visualJson["objType"]).Trim();
             if (visualJson["objName"] != null)
-                objName = visualJson["objName"].ToString().Replace('"', ' ').Trim();
+                objName = ((string) visualJson["objName"]).Trim();
             if (visualJson["statType"] != null)
-                statType = visualJson["statType"].ToString().Replace('"', ' ').Trim();
+                statType = ((string) visualJson["statType"]).Trim();
             if (visualJson["statHistory"] != null)
-                statHistory = Convert.ToInt32(visualJson["statHistory"].ToString().Replace('"', ' ').Trim());
+                statHistory = Convert.ToInt32((string) visualJson["statHistory"]);
             minValue = null;
             if (visualJson["minValue"] != null)
             {
-                string strVal = visualJson["minValue"].ToString().Replace('"', ' ').Trim();
+                string strVal = ((string) visualJson["minValue"]).Trim();
                 if (strVal != "null")
                     minValue = Convert.ToDouble(strVal);
             }
             maxValue = null;
             if (visualJson["maxValue"] != null)
             {
-                string strVal = visualJson["maxValue"].ToString().Replace('"', ' ').Trim();
+                string strVal = ((string) visualJson["maxValue"]).Trim();
                 if (strVal != "null")
                     maxValue = Convert.ToDouble(strVal);
             }
             if (visualJson["statQuery"] != null)
-                statQuery = visualJson["statQuery"].ToString().Replace('"', ' ').Trim();
+                statQuery = ((string) visualJson["statQuery"]).Trim();
             if (visualJson["statusHandle"] != null)
-                statusHandle = visualJson["statusHandle"].ToString().Replace('"', ' ').Trim();
-            if (visualJson["renderAdvice"] != null)
-                renderAdvice = visualJson["renderAdvice"].ToString().Replace('"', ' ').Trim();
-            if (visualJson["positionAdvice"] != null)
-                positionAdvice = new Alist(visualJson["positionAdvice"]);
+                statusHandle = ((string) visualJson["statusHandle"]).Trim();
+            if (visualJson["renderAttributes"] != null)
+                renderAttributes = new Alist(((string) visualJson["renderAttributes"]).Trim());
             else
-                positionAdvice = new Alist();
+                renderAttributes = new Alist();
         }
     }
 }

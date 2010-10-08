@@ -29,18 +29,17 @@ namespace GENIVisuals.models
         {
             // Parse node content out of JSON
             if (nodeJson["id"] != null)
-                id = Convert.ToInt32(nodeJson["id"].ToString().Replace('"', ' ').Trim());
+                id = Convert.ToInt32((string) nodeJson["id"]);
             if (nodeJson["name"] != null)
-                name = nodeJson["name"].ToString().Replace('"', ' ').Trim();
+                name = ((string) nodeJson["name"]).Trim();
             if (nodeJson["latitude"] != null)
-                latitude = Convert.ToDouble(nodeJson["latitude"].ToString().Replace('"', ' ').Trim());
+                latitude = Convert.ToDouble((string) nodeJson["latitude"]);
             if (nodeJson["longitude"] != null)
-                longitude = Convert.ToDouble(nodeJson["longitude"].ToString().Replace('"', ' ').Trim());
+                longitude = Convert.ToDouble((string) nodeJson["longitude"]);
             if (nodeJson["type"] != null)
-                type = nodeJson["type"].ToString().Replace('"', ' ').Trim();
+                type = ((string) nodeJson["type"]).Trim();
             if (nodeJson["icon"] != null)
-                icon = nodeJson["icon"].ToString().Replace('"', ' ').Trim();
-
+                icon = ((string) nodeJson["icon"]).Trim();
         }
 
         public int Id

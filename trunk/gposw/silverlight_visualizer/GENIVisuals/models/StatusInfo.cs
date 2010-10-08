@@ -24,9 +24,9 @@ namespace GENIVisuals.models
         {
             // Parse status content out of JSON
             if (statusInfoJson["handle"] != null)
-                _handle = statusInfoJson["handle"].ToString().Replace('"', ' ').Trim();
+                _handle = ((string) statusInfoJson["handle"]).Trim();
             if (statusInfoJson["status"] != null)
-                _status = statusInfoJson["status"].ToString().Replace('"', ' ').Trim();
+                _status = ((string) statusInfoJson["status"]).Trim();
         }
 
         public string Handle

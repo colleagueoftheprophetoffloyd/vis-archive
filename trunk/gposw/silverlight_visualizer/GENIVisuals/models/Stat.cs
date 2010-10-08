@@ -24,7 +24,6 @@ namespace GENIVisuals.models
             new ObservableCollection<KeyValuePair<DateTime, double>>(); // Valid only if _history is non-zero
         private double _currentValue; // Valid only if _history is zero.
 
-
         // Update values from content of JSON.
         public void UpdateWith(JsonValue dataJson)
         {
@@ -113,7 +112,6 @@ namespace GENIVisuals.models
                 NotifyPropertyChanged("currentValue");
             }
         }
-
 
         public event PropertyChangedEventHandler PropertyChanged;
 

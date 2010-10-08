@@ -3,18 +3,42 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:gv="clr-namespace:GENIVisuals"
     mc:Ignorable="d"
     d:DesignHeight="300" d:DesignWidth="400">
     <UserControl.Resources>
+    	
+		
+		
         <LinearGradientBrush x:Name="myBrush" StartPoint="0.5,0" EndPoint="0.5,1">
             <GradientStop Color="Yellow" Offset="0.0" />
             <GradientStop Color="Red" Offset="0.25" />
             <GradientStop Color="Blue" Offset="0.75" />
             <GradientStop Color="LimeGreen" Offset="1.0" />
         </LinearGradientBrush>
+        <Image x:Name="DefaultImage" Source="http://www.google.com/images/nav_logo16.png" />
+    	<Path x:Name="SamplePath" Data="M56,40 C208,64 170.4183,13.719787 208,56 C272.00018,128.00159 264,136.00354 264,136.00354 L168,168.00494 C168,168.00494 80,200.00636 104,152.00424 C128,104.00212 416,224.0074 312,160.00458" Fill="#FFF4F4F5" Margin="55.5,37.879,64.943,120.229" Stretch="Fill" Stroke="Black" UseLayoutRounding="False"/>
     </UserControl.Resources>
     <Grid x:Name="LayoutRoot" Background="White">
-        <Rectangle Height="155" HorizontalAlignment="Left" Margin="58,70,0,0" Name="rectangle1" Stroke="{StaticResource myBrush}" StrokeThickness="10" VerticalAlignment="Top" Width="247" />
-        <Ellipse Height="75" HorizontalAlignment="Left" Margin="114,114,0,0" Name="ellipse1" Stroke="{StaticResource myBrush}" StrokeThickness="8" VerticalAlignment="Top" Width="132" />
+    	<Path Data="M45,42 L315,217" Fill="#FFF4F4F5" Margin="45,42,84,82" Stretch="Fill" Stroke="Black" UseLayoutRounding="False" StrokeThickness="5" StrokeDashArray="5 1"> 
+    		<Path.Triggers>
+    			<EventTrigger RoutedEvent="Path.Loaded">
+    				<BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation
+                                Storyboard.TargetName="testLasso"
+                                Storyboard.TargetProperty="StrokeDashOffset"
+                                By="1"
+                                To="5"
+                                RepeatBehavior="Forever"
+                                Duration="0:0:5"
+                                SpeedRatio="3">
+                        </DoubleAnimation>
+                    </Storyboard>		
+					</BeginStoryboard>>	
+				</EventTrigger>
+			</Path.Triggers>
+		</Path>
+
     </Grid>
 </UserControl>

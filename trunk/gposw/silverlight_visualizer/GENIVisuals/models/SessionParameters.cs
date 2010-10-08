@@ -15,29 +15,8 @@ namespace GENIVisuals.models
 {
     public class SessionParameters
     {
-        public SessionParameters(SessionParameters copy)
-        {
-            slice = copy.slice;
-            dbHost = copy.dbHost;
-            dbUser = copy.dbUser;
-            dbPassword = copy.dbPassword;
-            dbName = copy.dbName;
-            useDebugServer = copy.useDebugServer;
-            debugServer = copy.debugServer;
-            useBogusData = copy.useBogusData;
-            makePeriodicQuery = copy.makePeriodicQuery;
-            topologyVisuals = new Collection<Visual>(copy.topologyVisuals);
-            topologyNodes = new Dictionary<string, Node>(copy.topologyNodes);
-            topologyLinks = new Dictionary<string, Link>(copy.topologyLinks);
-        }
-
-        public SessionParameters() {
-            topologyVisuals = new Collection<Visual>();
-            topologyNodes = new Dictionary<string, Node>();
-            topologyLinks = new Dictionary<string, Link>();
-        }
-
         public string slice { get; set; }
+        public string subSlice { get; set; }
         public string dbHost { get; set; }
         public string dbUser { get; set; }
         public string dbPassword { get; set; }
@@ -45,9 +24,35 @@ namespace GENIVisuals.models
         public bool useDebugServer { get; set; }
         public string debugServer { get; set; }
         public bool useBogusData { get; set; }
-        public bool makePeriodicQuery { get; set; }
-        public Collection<Visual> topologyVisuals { get; set; }
-        public Dictionary<string, Node> topologyNodes { get; set; }
-        public Dictionary<string, Link> topologyLinks { get; set; }
+        //public bool makePeriodicQuery { get; set; }
+        //public Collection<Visual> topologyVisuals { get; set; }
+        //public Dictionary<string, Node> topologyNodes { get; set; }
+        //public Dictionary<string, Link> topologyLinks { get; set; }
+
+        
+        public SessionParameters(SessionParameters original)
+        {
+            slice = original.slice;
+            subSlice = original.subSlice;
+            dbHost = original.dbHost;
+            dbUser = original.dbUser;
+            dbPassword = original.dbPassword;
+            dbName = original.dbName;
+            useDebugServer = original.useDebugServer;
+            debugServer = original.debugServer;
+            useBogusData = original.useBogusData;
+            //makePeriodicQuery = copy.makePeriodicQuery;
+            //topologyVisuals = new Collection<Visual>(copy.topologyVisuals);
+            //topologyNodes = new Dictionary<string, Node>(copy.topologyNodes);
+            //topologyLinks = new Dictionary<string, Link>(copy.topologyLinks);
+        }
+
+        public SessionParameters()
+        {
+            //topologyVisuals = new Collection<Visual>();
+            //topologyNodes = new Dictionary<string, Node>();
+            //topologyLinks = new Dictionary<string, Link>();
+        }
+
     }
 }

@@ -1,0 +1,42 @@
+﻿<gv:VisualControl 
+    x:Class="GENIVisuals.ResourceUsageGrid"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:gv="clr-namespace:GENIVisuals"
+    mc:Ignorable="d"
+    d:DesignHeight="300" d:DesignWidth="400">
+
+    <gv:VisualControl.Resources>
+        <SolidColorBrush x:Name="BlackBrush" Color="Black">
+        </SolidColorBrush>
+        <LinearGradientBrush x:Name="InUseFill" EndPoint="1,1" StartPoint="0,0">
+            <GradientStop Color="#FFEF3838" Offset="0"/>
+            <GradientStop Color="#FFC42929" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Name="AvailableFill" EndPoint="1,1" StartPoint="0,0">
+            <GradientStop Color="#FF38EF38" Offset="0"/>
+            <GradientStop Color="#FF29C429" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Name="GreyFill" EndPoint="1,1" StartPoint="0,0">
+            <GradientStop Color="#FF808080" Offset="0"/>
+            <GradientStop Color="#FF404040" Offset="1"/>
+        </LinearGradientBrush>
+        <RowDefinition x:Name="aRow" />
+        <ColumnDefinition x:Name="aColumn" />
+    </gv:VisualControl.Resources>
+
+    <Grid x:Name="LayoutRoot" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="NameBlock" Text="ResourceName" Grid.Row="0" FontSize="18">
+        </TextBlock>
+        <Grid x:Name="ResourceGrid" Grid.Row="1">
+        </Grid>
+    </Grid>
+
+</gv:VisualControl>

@@ -43,6 +43,7 @@ namespace GENIVisuals
             SessionParameters parameters = new SessionParameters
             {
                 slice = sliceBox.Text,
+                subSlice = null,
                 dbHost = hostBox.Text,
                 dbUser = userBox.Text,
                 dbPassword = passwordBox.Password,

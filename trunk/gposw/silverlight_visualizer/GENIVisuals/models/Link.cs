@@ -24,13 +24,13 @@ namespace GENIVisuals.models
             // Parse link content out of JSON.
 
             if (linkJson["id"] != null)
-                id = Convert.ToInt32(linkJson["id"].ToString().Replace('"', ' ').Trim());
+                id = Convert.ToInt32((string) linkJson["id"]);
             if (linkJson["name"] != null)
-                name = linkJson["name"].ToString().Replace('"', ' ').Trim();
+                name = ((string) linkJson["name"]).Trim();
             if (linkJson["sourceNode"] != null)
-                sourceNode = linkJson["sourceNode"].ToString().Replace('"', ' ').Trim();
+                sourceNode = ((string) linkJson["sourceNode"]).Trim();
             if (linkJson["destNode"] != null)
-                destNode = linkJson["destNode"].ToString().Replace('"', ' ').Trim();
+                destNode = ((string) linkJson["destNode"]).Trim();
         }
     }
 }
