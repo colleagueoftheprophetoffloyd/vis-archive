@@ -297,7 +297,7 @@ namespace GENIVisuals
                             dataSource = nodes[thisVisual.objName];
                         }
                         else if ((thisVisual.objType == "link") &&
-                            links.ContainsKey(thisVisual.objName))
+                                 links.ContainsKey(thisVisual.objName))
                         {
                             dataSource = links[thisVisual.objName];
                         }
@@ -323,7 +323,7 @@ namespace GENIVisuals
                 string objType = visualsForSource[obj][0].objType;
                 string objName = visualsForSource[obj][0].objName;
                 string title = objName;
-                StackPanel panel = null;
+                Stacker stacker = null;
                 Point offset = new Point(0, 0);
 
                 foreach (Visual vis in visualsForSource[obj])
@@ -331,30 +331,24 @@ namespace GENIVisuals
                     VisualControl control = MakeVisControl(vis);
                     control.ParentVisual = vis;
 
-                    if (vis.renderAttributes.GetValue("XOffset") != null)
-                        offset.X = Convert.ToInt32(vis.renderAttributes.GetValue("XOffset"));
-                    if (vis.renderAttributes.GetValue("YOffset") != null)
-                        offset.Y = Convert.ToInt32(vis.renderAttributes.GetValue("YOffset"));
                     if (vis.renderAttributes.GetValue("Title") != null)
                         title = vis.renderAttributes.GetValue("Title");
 
                     if (control != null)
                     {
-                        if (! nonOverlayVisualTypes.Contains(vis.infoType))
-                        {
-                            if (panel == null)
-                            {
-                                panel = new StackPanel();
-                                panel.Opacity = 0.7;
-                                //panel.Background = new SolidColorBrush(Colors.LightGray);
-                            }
-                            if (! panel.Children.Contains(control))
-                                panel.Children.Add(control);
-                        }
-                        else // if (vis.infoType == "arc")
+                        if (nonOverlayVisualTypes.Contains(vis.infoType))
                         {
                             Location location = GetSourceLocation(objName);
-                            OverlayLayer.AddChild(control, location);
+                            offset = control.processAttributes(vis.renderAttributes, null);
+                            OverlayLayer.AddChild(control, location, offset);
+                        }
+                        else
+                        {
+                            if (stacker == null)
+                                stacker = new Stacker();
+                            offset = control.processAttributes(vis.renderAttributes, stacker);
+                            if (!stacker.Panel.Children.Contains(control))
+                                stacker.Panel.Children.Add(control);
                         }
 
                         if ((vis.statQuery != null) && (vis.statQuery != ""))
@@ -364,14 +358,12 @@ namespace GENIVisuals
                     }
                 }
 
-                if (panel != null)
+                if (stacker != null)
                 {
                     //FloatableWindow fw = new FloatableWindow();
                     //fw.ResizeMode = ResizeMode.CanResize;
-                    ////fw.Height = 200;
-                    ////fw.Width = 200;
                     //fw.Title = title;
-                    //fw.Content = panel;
+                    //fw.Content = stacker;
                     //fw.SetValue(Grid.RowProperty, 1);
                     //fw.SetValue(Grid.ColumnProperty, 1);
                     //fw.SetValue(Grid.RowSpanProperty, 1);
@@ -380,12 +372,11 @@ namespace GENIVisuals
                     //// Position popup.
                     //fw.ParentLayoutRoot = mapCanvas;
                     //Location location = GetLocation(objType, objName);
-                    ////overlayLayer.AddChild(panel, location, offset); // *** Doesn't work
                     //Point centerPoint = sliceMap.LocationToViewportPoint(location);
                     //fw.Show(centerPoint.X, centerPoint.Y);
 
                     Location location = GetLocation(objType, objName);
-                    OverlayLayer.AddChild(panel, location, offset);
+                    OverlayLayer.AddChild(stacker, location, offset);
                 }
             }
         }
@@ -647,12 +638,8 @@ namespace GENIVisuals
             }
             else if (vis.infoType == "zoomButton")
             {
-                //Button button = new Button();
-                //button.Click += new RoutedEventHandler(labelButtonClick);
-                //button.Content = objectName;
-                //control = button;
                 ZoomButton zoomButton = new ZoomButton();
-                zoomButton.Button.Click += new RoutedEventHandler(labelButtonClick);
+                zoomButton.Button.Click += new RoutedEventHandler(zoomButtonClick);
                 zoomButton.Button.Content = objectName;
                 control = zoomButton;
             }
@@ -804,12 +791,8 @@ namespace GENIVisuals
         //
         // ** Experimental **
         //
-        void labelButtonClick(object sender, RoutedEventArgs e)
+        void zoomButtonClick(object sender, RoutedEventArgs e)
         {
-            // Find the associated visual (gotta be a better way),
-            // so that we can use the advice alist.
-            // TODO: learn how to pass the visual along with e
-
             Button button = sender as Button;
             Visual vis = null;
             foreach (Visual thisVis in visuals)
@@ -875,7 +858,12 @@ namespace GENIVisuals
                 if (zoomLevel != null)
                     targetZoomLevel = Convert.ToDouble(zoomLevel);
             }
-            fw.Title = newParams.slice;
+
+            if ((newParams.subSlice != null) &&
+                (newParams.subSlice != ""))
+                fw.Title = newParams.subSlice;
+            else
+                fw.Title = newParams.slice;
             mp.sliceMap.SetView(center, targetZoomLevel);
 
             // Don't need decorations in child window.
@@ -883,6 +871,8 @@ namespace GENIVisuals
             lr.Children.Remove(mp.image1);
             lr.Children.Remove(mp.infoLabel);
             lr.Children.Remove(mp.sliceLabel);
+            mp.sliceMap.LogoVisibility = Visibility.Collapsed;
+            mp.sliceMap.CopyrightVisibility = Visibility.Collapsed;
             mp.sliceMap.SetValue(Grid.RowProperty, 0);
             mp.sliceMap.SetValue(Grid.ColumnProperty, 0);
             mp.sliceMap.SetValue(Grid.RowSpanProperty, 3);
@@ -1032,7 +1022,7 @@ namespace GENIVisuals
         }
 
         // If map view changes, may need to refresh some visuals.
-        private void sliceMap_ViewChangeEnd(object sender, MapEventArgs e)
+        private void sliceMap_ViewChange(object sender, MapEventArgs e)
         {
             // *** Currently only arcs need redrawing, but should be a property or list of some kind.
             foreach (Visual vis in visuals)

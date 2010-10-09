@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
+using System.Reflection;
 using GENIVisuals.models;
 
 namespace GENIVisuals
@@ -91,25 +92,128 @@ namespace GENIVisuals
 
 
         //
-        // Process any rendering instructions from the provided Alist
-        // and add to the parent UIElement provided.
+        // Process any rendering instructions from the provided Alist.
         //
-        public virtual void processAttributes(Alist attributes, UIElement parent)
+        // Attributes may be applied directly to the VisualControl, but
+        // more likely apply to the container in which it's held or
+        // indicate its placement on the map.
+        //
+        // Update provided container object as appropriate (if non-null),
+        // and return a Point indicating offset information.
+        //
+        public virtual Point processAttributes(Alist attributes, VisualControl container)
         {
-            Alist result = new Alist();
+            Point offset = new Point(-Width/2, -Height/2);    // Default offset is to center object
 
             foreach (string attributeName in attributes.attributes.Keys)
             {
                 string value = attributes.GetValue(attributeName);
                 switch (attributeName.ToLower())
                 {
+                    // Container attributes.
+
+                    case "opacity":
+                        Opacity = Convert.ToDouble(value);
+                        break;
+
+                    case "background":
+                        Color bgColor = GetThisColor(value);
+                        Background = new SolidColorBrush(bgColor);
+                        break;
+
+
+                    // Offset attributes.
+
+                    case "xoffset":
+                        offset.X += Convert.ToInt32(value);
+                        break;
+
+                    case "yoffset":
+                        offset.Y += Convert.ToInt32(value);
+                        break;
+
+                    case "alignment":
+                        switch (value.ToLower())
+                        {
+                            case "center":
+                                // No change, this is default.
+                                break;
+
+                            case "top":
+                                offset.Y += Height / 2;
+                                break;
+
+                            case "bottom":
+                                offset.Y -= Height / 2;
+                                break;
+
+                            case "left":
+                                offset.X += Width / 2;
+                                break;
+
+                            case "right":
+                                offset.X -= Width / 2;
+                                break;
+
+                            case "topleft":
+                                offset.Y += Height / 2;
+                                offset.X += Width / 2;
+                                break;
+
+                            case "bottomleft":
+                                offset.Y -= Height / 2;
+                                offset.X += Width / 2;
+                                break;
+
+                            case "topright":
+                                offset.Y += Height / 2;
+                                offset.X -= Width / 2;
+                                break;
+
+                            case "bottomright":
+                                offset.Y -= Height / 2;
+                                offset.X -= Height / 2;
+                                break;
+                        }
+                        break; // end case "alignment"
+
                     default:
                         // ignore unknown attributes?
                         break;
                 }
             }
 
+            if (double.IsNaN(offset.X) ||
+                double.IsInfinity(offset.X))
+            {
+                offset.X = 0;
+            }
+
+            if (double.IsNaN(offset.Y) ||
+                double.IsInfinity(offset.Y))
+            {
+                offset.Y = 0;
+            }
+
+            return offset;
         }
+
+
+        public Color GetThisColor(string colorString)
+        {
+            Type colorType = (typeof(System.Windows.Media.Colors));
+            if (colorType.GetProperty(colorString) != null)
+            {
+                object o = colorType.InvokeMember(colorString, BindingFlags.GetProperty, null, null, null); 
+                if (o != null)
+                {
+                    return (Color)o;
+                }
+
+            }
+            return Colors.Black;
+        }
+
 
         public VisualControl()
         {

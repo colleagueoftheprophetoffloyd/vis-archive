@@ -135,6 +135,9 @@
     <Compile Include="ScalarValue.xaml.cs">
       <DependentUpon>ScalarValue.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Stacker.xaml.cs">
+      <DependentUpon>Stacker.xaml</DependentUpon>
+    </Compile>
     <Compile Include="TextLabel.xaml.cs">
       <DependentUpon>TextLabel.xaml</DependentUpon>
     </Compile>
@@ -232,6 +235,12 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="ZoomButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Stacker.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

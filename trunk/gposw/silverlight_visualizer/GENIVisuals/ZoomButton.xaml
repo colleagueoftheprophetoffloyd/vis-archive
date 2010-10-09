@@ -8,7 +8,7 @@
                   mc:Ignorable="d"
                   d:DesignHeight="20" d:DesignWidth="100">
     
-    <Grid x:Name="LayoutRoot" Background="White">
+    <Grid x:Name="LayoutRoot" Background="White" Opacity="1">
         <Button x:Name="Button" Content ="ButtonName" Background="DarkGray" Foreground="Black" Margin="2"/>
     </Grid>
 </gv:VisualControl>

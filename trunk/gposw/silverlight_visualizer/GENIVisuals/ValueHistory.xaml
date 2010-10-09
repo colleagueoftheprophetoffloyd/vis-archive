@@ -8,19 +8,28 @@
     mc:Ignorable="d"
     d:DesignHeight="300" d:DesignWidth="400" xmlns:toolkit="http://schemas.microsoft.com/winfx/2006/xaml/presentation/toolkit">
         
-    <Grid x:Name="LayoutRoot" Background="White">
+    <Grid x:Name="LayoutRoot" Background="White" Opacity="1">
         
         <Grid.Resources>
-            <Style x:Name="NoLegendStyle" TargetType="toolkit:Legend">
-                <Setter Property="Width" Value="0"/>
-                <Setter Property="Height" Value="0"/>
+            <Style x:Name="LegendStyle" TargetType="toolkit:Legend">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="BorderThickness" Value="0" />
+                <!--Setter Property="Width" Value="0"/> -->
+                <!--Setter Property="Height" Value="0"/> -->
+            </Style>
+            <Style x:Key="TitleStyle" TargetType="toolkit:Title">
+                <Setter Property="Visibility" Value="Collapsed" />
             </Style>
             <Style x:Name="TimeLabelStyle" TargetType="toolkit:DateTimeAxisLabel">
                 <Setter Property="StringFormat" Value="{}{0:HH:mm}"/>
             </Style>
+            <Style x:Name="LineStyle" TargetType="Polyline">
+                <Setter Property="StrokeThickness" Value="5" />
+                <Setter Property="StrokeLineJoin" Value="Round" />
+            </Style>
         </Grid.Resources>
-        
-        <toolkit:Chart Margin="8" Name="Chart" LegendStyle="{StaticResource NoLegendStyle}">
+
+        <toolkit:Chart Margin="8" Name="Chart" LegendStyle="{StaticResource LegendStyle}" TitleStyle="{StaticResource TitleStyle}">
             <toolkit:Chart.Axes>
                 <toolkit:DateTimeAxis x:Name="TimeAxis" Orientation="X" AxisLabelStyle="{StaticResource TimeLabelStyle}" Location="Bottom" />
             </toolkit:Chart.Axes>

@@ -20,7 +20,7 @@
         </RadialGradientBrush>
     </gv:VisualControl.Resources>
     
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="Transparent" Opacity="1">
         <Path x:Name="StarPath"
               Stretch="UniformToFill" Height="Auto" Width="Auto"
 			  Margin="2,2,2,2" StrokeThickness="1.5" StrokeLineJoin="Round" 

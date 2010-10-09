@@ -54,7 +54,7 @@
         </Storyboard>
     </UserControl.Resources>
 
-    <Grid x:Name="LayoutRoot" Background="White">
+    <Grid x:Name="LayoutRoot" Background="White" Opacity="1">
 
     </Grid>
 </UserControl>

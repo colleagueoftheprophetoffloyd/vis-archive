@@ -27,7 +27,7 @@
         <ColumnDefinition x:Name="aColumn" />
     </gv:VisualControl.Resources>
 
-    <Grid x:Name="LayoutRoot" Background="White">
+    <Grid x:Name="LayoutRoot" Background="White" Opacity="1">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
