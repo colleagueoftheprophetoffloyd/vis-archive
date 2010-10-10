@@ -461,6 +461,29 @@ namespace GENIVisuals
         }
 
 
+        //
+        // Return the underlying object (node or link) named by
+        // the provided type and name.  Show an error and return
+        // null on failure.
+        //
+        private Object FindObject(string objType, string objName)
+        {
+            if (objType == "node")
+            {
+                if (nodes.ContainsKey(objName))
+                    return nodes[objName];
+            }
+            else if (objType == "link")
+            {
+                if (links.ContainsKey(objName))
+                    return links[objName];
+            }
+
+            ShowError(String.Format("FindObject couldn't find object {0} of type {1}.",
+                                    objName, objType));
+            return null;
+        }
+
 
         //
         // Return a location for the object (node, link).
@@ -470,30 +493,21 @@ namespace GENIVisuals
             // Currently only understand nodes and links.
             if (objType == "node")
             {
-                Node thisNode = nodes[objName];
-                return new Location(thisNode.Latitude, thisNode.Longitude);
+                Node thisNode = FindObject(objType, objName) as Node;
+                if (thisNode != null)
+                    return new Location(thisNode.Latitude, thisNode.Longitude);
+                else
+                    return null;
             }
             else if (objType == "link")
             {
-                Link thisLink = links[objName];
-                Node sourceNode = null;
-                Node destNode = null;
-                if (nodes.ContainsKey(thisLink.sourceNode))
-                    sourceNode = nodes[thisLink.sourceNode];
-                else
-                {
-                    ShowError(String.Format("GetLocation couldn't find source node {0} of link {1}.",
-                              thisLink.sourceNode, objName));
+                Link thisLink = FindObject(objType, objName) as Link;
+                if (thisLink == null)
                     return null;
-                }
-                if (nodes.ContainsKey(thisLink.destNode))
-                    destNode = nodes[thisLink.destNode];
-                else
-                {
-                    ShowError(String.Format("GetLocation couldn't find destination node {0} of link {1}.",
-                              thisLink.destNode, objName));
+                Node sourceNode = FindObject("node", thisLink.sourceNode) as Node;
+                Node destNode = FindObject("node", thisLink.destNode) as Node;
+                if ((sourceNode == null) || (destNode == null))
                     return null;
-                }
 
                 Location sourceLoc = new Location(sourceNode.Latitude, sourceNode.Longitude);
                 Location destLoc = new Location(destNode.Latitude, destNode.Longitude);
@@ -514,27 +528,14 @@ namespace GENIVisuals
         // Find the location of the source node of a link.
         private Location GetSourceLocation(string linkName)
         {
-            Link thisLink = null;
-
-            if (links.ContainsKey(linkName))
-                thisLink = links[linkName];
-            else
-            {
-                ShowError(String.Format("GetSourceLocation couldn't find link {0}.",
-                                        linkName));
-
+            Link thisLink = FindObject("link", linkName) as Link;
+            if (thisLink == null)
                 return null;
-            }
-                
-            Node sourceNode = null;
-            if (nodes.ContainsKey(thisLink.sourceNode))
-                sourceNode = nodes[thisLink.sourceNode];
-            else
-            {
-                ShowError(String.Format("GetSourceLocation couldn't find source node {0} of link {1}.",
-                                        thisLink.sourceNode, linkName));
+
+            Node sourceNode = FindObject("node", thisLink.sourceNode) as Node;
+            if (sourceNode == null)
                 return null;
-            }
+
             Location sourceLoc = new Location(sourceNode.Latitude, sourceNode.Longitude);
             return sourceLoc;
         }
@@ -543,8 +544,11 @@ namespace GENIVisuals
         // Return a point collection of waypoints for the given data path.
         // Currently just two points.
         //
-        private PointCollection PointsForPath(string objType, string objName)
+        private PointCollection PointsForPath(Visual vis)
         {
+            string objType = vis.objType;
+            string objName = vis.objName;
+
             // Only links have waypoints.
             if (objType != "link")
             {
@@ -554,41 +558,52 @@ namespace GENIVisuals
             }
 
             // Get link info.
-            Link thisLink = links[objName];
-            Node sourceNode = null;
-            Node destNode = null;
-            if (nodes.ContainsKey(thisLink.sourceNode))
-                sourceNode = nodes[thisLink.sourceNode];
-            else
-            {
-                ShowError(String.Format("Couldn't find source node {0} of link {1}.",
-                          thisLink.sourceNode, objName));
+            Link thisLink = FindObject(objType, objName) as Link;
+            if (thisLink == null)
                 return null;
-            }
-            if (nodes.ContainsKey(thisLink.destNode))
-                destNode = nodes[thisLink.destNode];
-            else
+
+
+            // Get the list of nodes that the path follows.
+            // Use the list in "datapath" attribute, if we can.
+            List<Node> datapathNodes = new List<Node>();
+            string datapath = vis.renderAttributes.GetValue("datapath");
+            if (datapath != null)
             {
-                ShowError(String.Format("Couldn't find destination node {0} of link {1}.",
-                          thisLink.destNode, objName));
-                return null;
-            }
-            Location sourceLoc = new Location(sourceNode.Latitude, sourceNode.Longitude);
-            Location destLoc = new Location(destNode.Latitude, destNode.Longitude);
-            if ((sourceLoc == null) || (destLoc == null))
-            {
-                ShowError(String.Format("Bad location(s) for endpoint(s) of link {0}.",
-                                        objName));
-                return null;
+                foreach (string nodeName in datapath.Split(':'))
+                {
+                    Node thisNode = FindObject("node", nodeName) as Node;
+                    if (thisNode != null)
+                        datapathNodes.Add(thisNode);
+                }
             }
 
-            Point sPoint = sliceMap.LocationToViewportPoint(sourceLoc);
-            Point dPoint = sliceMap.LocationToViewportPoint(destLoc);
+            // Didn't find a good datapath.  Just use the two endpoints.
+            if (datapathNodes.Count() < 2)
+            {
+                datapathNodes.Clear();
+                Node sourceNode = FindObject("node", thisLink.sourceNode) as Node;
+                Node destNode = FindObject("node", thisLink.destNode) as Node;
+                if ((sourceNode == null) || (destNode == null))
+                    return null;
+                datapathNodes.Add(sourceNode);
+                datapathNodes.Add(destNode);
+            }
 
+
+            // Convert from (lat,lon) to pixel coordinates, using the initial
+            // point as origin.
+            Node firstNode = datapathNodes[0];
+            Location firstLoc = new Location(firstNode.Latitude, firstNode.Longitude);
+            Point firstPoint = sliceMap.LocationToViewportPoint(firstLoc);
             PointCollection result = new PointCollection();
-            result.Add(new Point(0,0));
-            result.Add(new Point(dPoint.X - sPoint.X,
-                                 dPoint.Y - sPoint.Y));
+
+            foreach (Node thisNode in datapathNodes)
+            {
+                Location thisLoc = new Location(thisNode.Latitude, thisNode.Longitude);
+                Point thisPoint = sliceMap.LocationToViewportPoint(thisLoc);
+                result.Add(new Point(thisPoint.X - firstPoint.X,
+                                     thisPoint.Y - firstPoint.Y));
+            }
             return result;
         }
 
@@ -633,7 +648,11 @@ namespace GENIVisuals
             if (vis.infoType == "label")
             {
                 TextLabel label = new TextLabel();
-                label.Label.Content = objectName;
+                string labelContent = vis.renderAttributes.GetValue("text");
+                if ((labelContent != null) && (labelContent != ""))
+                    label.Label.Content = labelContent;
+                else
+                    label.Label.Content = objectName;
                 control = label;
             }
             else if (vis.infoType == "zoomButton")
@@ -689,7 +708,7 @@ namespace GENIVisuals
             else if (vis.infoType == "arc")
             {
                 DataPath arc = new DataPath();
-                arc.Waypoints = PointsForPath(vis.objType, vis.objName);
+                arc.Waypoints = PointsForPath(vis);
                 control = arc;
             }
             // Is it a statitics graph?
@@ -789,7 +808,8 @@ namespace GENIVisuals
 
 
         //
-        // ** Experimental **
+        // Event routine for clicks on zoomButton objects.
+        // Display a floating popup window.
         //
         void zoomButtonClick(object sender, RoutedEventArgs e)
         {
@@ -1034,7 +1054,7 @@ namespace GENIVisuals
                     DataPath arc = controls[vis] as DataPath;
                     if (OverlayLayer.Children.Contains(arc))
                         OverlayLayer.Children.Remove(arc);
-                    arc.Waypoints = PointsForPath(vis.objType, vis.objName);
+                    arc.Waypoints = PointsForPath(vis);
                     Location location = GetSourceLocation(vis.objName);
                     OverlayLayer.AddChild(arc, location);
                 }

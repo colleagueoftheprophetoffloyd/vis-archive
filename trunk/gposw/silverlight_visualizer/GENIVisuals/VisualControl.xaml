@@ -55,6 +55,5 @@
     </UserControl.Resources>
 
     <Grid x:Name="LayoutRoot" Background="White" Opacity="1">
-
     </Grid>
 </UserControl>
