@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:gv="clr-namespace:GENIVisuals"
+    xmlns:pa="clr-namespace:PathAnimation;assembly=PathAnimation"
     mc:Ignorable="d"
     d:DesignHeight="300" d:DesignWidth="400">
     
@@ -49,14 +50,12 @@
                              AutoReverse="False"
                              RepeatBehavior="Forever" />
         </Storyboard>
-
-
     </gv:VisualControl.Resources>
     
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Path x:Name="RenderedPath" Stroke="{StaticResource LinkBrush}" StrokeDashArray="5 1" StrokeDashOffset="0" StrokeThickness="5">
             <Path.Data>
-                <PathGeometry>
+                <PathGeometry x:Name="PathGeometry">
                     <PathFigureCollection x:Name="FigureCollection">
                         <PathFigure>
                             <PolyLineSegment>
@@ -71,5 +70,6 @@
                 </PathGeometry>
             </Path.Data>
         </Path>
+        <Canvas x:Name="AnimationCanvas" />
     </Grid>
 </gv:VisualControl>

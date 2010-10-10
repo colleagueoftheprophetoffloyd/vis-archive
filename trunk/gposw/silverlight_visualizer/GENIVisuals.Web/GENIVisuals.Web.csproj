@@ -51,6 +51,7 @@
     <Content Include="images\Stanford.jpg" />
     <Content Include="images\UKentucky.jpg" />
     <Content Include="images\UUtah.jpg" />
+    <Content Include="images\Violin.png" />
     <Content Include="Silverlight.js" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">

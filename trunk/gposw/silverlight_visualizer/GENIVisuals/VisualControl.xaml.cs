@@ -39,20 +39,26 @@ namespace GENIVisuals
 
         public models.Visual ParentVisual { get; set; }
 
-        private Storyboard activeStoryboard = null;
+        protected Storyboard activeStoryboard = null;
         private static void OnCurrentStatusChanged(object sender, DependencyPropertyChangedEventArgs args)
         {
             VisualControl control = sender as VisualControl;
             string newStatus = control.CurrentStatus;
+            control.SetStatus(newStatus);
+        }
 
-            if (! control.canDisplay(newStatus))
+        protected virtual void SetStatus(string status)
+        {
+            string newStatus = status;
+
+            if (! canDisplay(newStatus))
                 newStatus = statusNames[0];
 
-            if (control.activeStoryboard != null)
-                control.activeStoryboard.Stop();
-            control.activeStoryboard = control.StoryboardForStatus(newStatus);
-            if (control.activeStoryboard != null)
-                control.activeStoryboard.Begin();
+            if (activeStoryboard != null)
+                activeStoryboard.Stop();
+            activeStoryboard = StoryboardForStatus(newStatus);
+            if (activeStoryboard != null)
+                activeStoryboard.Begin();
         }
 
         private static string[] statusNames = 
