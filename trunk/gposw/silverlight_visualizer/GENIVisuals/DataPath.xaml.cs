@@ -126,7 +126,8 @@ namespace GENIVisuals
 
         private static string[] pathAnimationStatusNames = 
         {
-           "violin"
+           "violin",
+           "puzzle"
         };
 
         private static string[] statusNames = 
@@ -138,7 +139,8 @@ namespace GENIVisuals
             "rainbow",
             "forward",
             "backward",
-            "violin"
+            "violin",
+            "puzzle"
         };
         private static List<string> storyboardStatusList = new List<string>(storyboardStatusNames);
         private static List<string> pathAnimationStatusList = new List<string>(pathAnimationStatusNames);
@@ -178,6 +180,8 @@ namespace GENIVisuals
         {
             if (status == "violin")
                 SetupViolinAnimations();
+            if (status == "puzzle")
+                SetupPuzzleAnimations();
         }
 
         private void SetupViolinAnimations()
@@ -236,6 +240,48 @@ namespace GENIVisuals
             activeStoryboard = ForwardStoryboard;
             activeStoryboard.Begin();
         }
+
+        private void SetupPuzzleAnimations()
+        {
+            Image violinImage = new Image();
+            violinImage.Height = 100;
+            violinImage.Width = 100;
+            string myURI = Application.Current.Host.Source.ToString();
+            string imageBase = myURI.Substring(0, myURI.IndexOf("ClientBin"));
+            string uriString = imageBase + "images/puzzlePiece.png";
+            Uri imageSourceURI = new Uri(uriString, UriKind.Absolute);
+            violinImage.Source = new System.Windows.Media.Imaging.BitmapImage(imageSourceURI);
+            activeAnimatedObjects.Add(violinImage);
+
+            DoubleAnimationUsingPath animX;
+            animX = new DoubleAnimationUsingPath();
+            animX.BeginTime = TimeSpan.Zero;
+            animX.Duration = TimeSpan.FromSeconds(2.0);
+            animX.RepeatBehavior = RepeatBehavior.Forever;
+            animX.PathGeometry = PathGeometry;
+            animX.Source = PathAnimationSource.X;
+            animX.Target = violinImage;
+            animX.TargetProperty = new PropertyPath("(Canvas.Left)");
+            animX.Tolerance = 30;
+
+            DoubleAnimationUsingPath animY;
+            animY = new DoubleAnimationUsingPath();
+            animY.BeginTime = TimeSpan.Zero;
+            animY.Duration = TimeSpan.FromSeconds(2.0);
+            animX.RepeatBehavior = RepeatBehavior.Forever;
+            animY.PathGeometry = PathGeometry;
+            animY.Source = PathAnimationSource.Y;
+            animY.Target = violinImage;
+            animY.TargetProperty = new PropertyPath("(Canvas.Top)");
+            animY.Tolerance = 30;
+
+            activePathAnimations.Add(animX);
+            activePathAnimations.Add(animY);
+
+            activeStoryboard = ForwardStoryboard;
+            activeStoryboard.Begin();
+        }
+
 
         public DataPath()
         {

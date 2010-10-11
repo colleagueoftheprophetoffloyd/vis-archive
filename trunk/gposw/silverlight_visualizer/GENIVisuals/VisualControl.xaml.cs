@@ -109,7 +109,21 @@ namespace GENIVisuals
         //
         public virtual Point processAttributes(Alist attributes, VisualControl container)
         {
-            Point offset = new Point(-Width/2, -Height/2);    // Default offset is to center object
+           
+            // Initialize offset to center object.
+            Point offset = new Point(-Width/2, -Height/2);
+            if (double.IsNaN(offset.X) ||
+                double.IsInfinity(offset.X))
+            {
+                offset.X = 0;
+            }
+
+            if (double.IsNaN(offset.Y) ||
+                double.IsInfinity(offset.Y))
+            {
+                offset.Y = 0;
+            }
+            
 
             foreach (string attributeName in attributes.attributes.Keys)
             {

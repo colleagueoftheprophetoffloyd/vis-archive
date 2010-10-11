@@ -346,9 +346,9 @@ namespace GENIVisuals
                         {
                             if (stacker == null)
                                 stacker = new Stacker();
-                            offset = control.processAttributes(vis.renderAttributes, stacker);
                             if (!stacker.Panel.Children.Contains(control))
                                 stacker.Panel.Children.Add(control);
+                            offset = control.processAttributes(vis.renderAttributes, stacker);
                         }
 
                         if ((vis.statQuery != null) && (vis.statQuery != ""))
@@ -648,6 +648,8 @@ namespace GENIVisuals
             if (vis.infoType == "label")
             {
                 TextLabel label = new TextLabel();
+                label.Width = 100;
+                label.Height = 20;
                 string labelContent = vis.renderAttributes.GetValue("text");
                 if ((labelContent != null) && (labelContent != ""))
                     label.Label.Content = labelContent;
@@ -724,6 +726,8 @@ namespace GENIVisuals
                 if (vis.infoType == "scalar")
                 {
                     ScalarValue scalar = new ScalarValue();
+                    scalar.Width = 200;
+                    scalar.Height = 40;
                     scalar.Label.Content = vis.statType;
                     if (vis.minValue.HasValue)
                         scalar.ProgressBar.Minimum = vis.minValue.Value;

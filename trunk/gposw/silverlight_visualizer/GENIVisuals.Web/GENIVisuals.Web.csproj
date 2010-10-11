@@ -47,6 +47,7 @@
     <Content Include="images\PlanetLabCropped.png" />
     <Content Include="images\PlanetLabCroppedTrans.png" />
     <Content Include="images\PlanetLab_logo1.jpg" />
+    <Content Include="images\puzzlePiece.png" />
     <Content Include="images\smile.png" />
     <Content Include="images\Stanford.jpg" />
     <Content Include="images\UKentucky.jpg" />
