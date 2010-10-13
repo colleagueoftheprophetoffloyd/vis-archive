@@ -540,6 +540,42 @@ namespace GENIVisuals
             return sourceLoc;
         }
 
+
+        //
+        // Helper functions for PointsForPath.  Return pixel offset and
+        // node parts in a node spec in a datapath.
+        // Examples:
+        // node1+100+50 (means X,Y offset of 100,50 from location of node1)
+        // node1-100-50 (-100, -50)
+        //
+        private Point OffsetPart(string spec)
+        {
+            char [] splitChars = {'+','-'};
+            Point result = new Point(0, 0);
+
+            string [] parts = spec.Split(splitChars);
+            if (parts.Length == 3)
+            {
+                result.X = Convert.ToDouble(parts[1]);
+                result.Y = Convert.ToDouble(parts[2]);
+
+                int firstSepPos = parts[0].Length;
+                int secondSepPos = parts[0].Length + 1 + parts[1].Length;
+                if (spec[firstSepPos] == '-')
+                    result.X *= -1;
+                if (spec[secondSepPos] == '-')
+                    result.Y *= -1;
+            }
+            return result;
+        }
+
+        private string NodePart(string spec)
+        {
+            char[] splitChars = { '+', '-' };
+            return spec.Split(splitChars)[0];
+        }
+
+
         //
         // Return a point collection of waypoints for the given data path.
         // Currently just two points.
@@ -566,14 +602,19 @@ namespace GENIVisuals
             // Get the list of nodes that the path follows.
             // Use the list in "datapath" attribute, if we can.
             List<Node> datapathNodes = new List<Node>();
+            List<Point> datapathOffsets = new List<Point>();
             string datapath = vis.renderAttributes.GetValue("datapath");
             if (datapath != null)
             {
-                foreach (string nodeName in datapath.Split(':'))
+                foreach (string nodeSpec in datapath.Split(':'))
                 {
+                    string nodeName = NodePart(nodeSpec);
                     Node thisNode = FindObject("node", nodeName) as Node;
                     if (thisNode != null)
+                    {
                         datapathNodes.Add(thisNode);
+                        datapathOffsets.Add(OffsetPart(nodeSpec));
+                    }
                 }
             }
 
@@ -586,7 +627,9 @@ namespace GENIVisuals
                 if ((sourceNode == null) || (destNode == null))
                     return null;
                 datapathNodes.Add(sourceNode);
+                datapathOffsets.Add(new Point(0, 0));
                 datapathNodes.Add(destNode);
+                datapathOffsets.Add(new Point(0, 0));
             }
 
 
@@ -597,12 +640,14 @@ namespace GENIVisuals
             Point firstPoint = sliceMap.LocationToViewportPoint(firstLoc);
             PointCollection result = new PointCollection();
 
-            foreach (Node thisNode in datapathNodes)
+            for (int i=0; i < datapathNodes.Count; i++)
             {
+                Node thisNode = datapathNodes[i];
+                Point offset = datapathOffsets[i];
                 Location thisLoc = new Location(thisNode.Latitude, thisNode.Longitude);
                 Point thisPoint = sliceMap.LocationToViewportPoint(thisLoc);
-                result.Add(new Point(thisPoint.X - firstPoint.X,
-                                     thisPoint.Y - firstPoint.Y));
+                result.Add(new Point(thisPoint.X + offset.X - firstPoint.X,
+                                     thisPoint.Y + offset.Y - firstPoint.Y));
             }
             return result;
         }
