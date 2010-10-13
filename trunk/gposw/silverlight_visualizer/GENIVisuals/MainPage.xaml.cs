@@ -544,27 +544,25 @@ namespace GENIVisuals
         //
         // Helper functions for PointsForPath.  Return pixel offset and
         // node parts in a node spec in a datapath.
-        // Examples:
-        // node1+100+50 (means X,Y offset of 100,50 from location of node1)
-        // node1-100-50 (-100, -50)
+        // Example:
+        // node1+(-100;50) (means X,Y offset of 1100,50 from location of node1)
         //
         private Point OffsetPart(string spec)
         {
-            char [] splitChars = {'+','-'};
             Point result = new Point(0, 0);
 
-            string [] parts = spec.Split(splitChars);
-            if (parts.Length == 3)
+            string [] parts = spec.Split('+');
+            if (parts.Length == 2)
             {
-                result.X = Convert.ToDouble(parts[1]);
-                result.Y = Convert.ToDouble(parts[2]);
+                char[] parens = { '(', ')' };
+                string offsetString = parts[1].Trim(parens);
+                string[] coords = offsetString.Split(';');
 
-                int firstSepPos = parts[0].Length;
-                int secondSepPos = parts[0].Length + 1 + parts[1].Length;
-                if (spec[firstSepPos] == '-')
-                    result.X *= -1;
-                if (spec[secondSepPos] == '-')
-                    result.Y *= -1;
+                if (coords.Length == 2)
+                {
+                    result.X = Convert.ToDouble(coords[0]);
+                    result.Y = Convert.ToDouble(coords[1]);
+                }
             }
             return result;
         }
@@ -831,7 +829,10 @@ namespace GENIVisuals
                     // Create a line series
                     LineSeries line = graph.AddLine();
                     line.SetValue(LineSeries.TitleProperty, myStat.statType);
-
+                    if (vis.minValue.HasValue)
+                        graph.Minimum = vis.minValue;
+                    if (vis.maxValue.HasValue)
+                        graph.Maximum = vis.maxValue;
 
                     // Bind data
                     Binding bind = new Binding("values");
@@ -1104,8 +1105,10 @@ namespace GENIVisuals
                     if (OverlayLayer.Children.Contains(arc))
                         OverlayLayer.Children.Remove(arc);
                     arc.Waypoints = PointsForPath(vis);
+
                     Location location = GetSourceLocation(vis.objName);
-                    OverlayLayer.AddChild(arc, location);
+                    Point offset = arc.processAttributes(vis.renderAttributes, null);
+                    OverlayLayer.AddChild(arc, location, offset);
                 }
             }
         }

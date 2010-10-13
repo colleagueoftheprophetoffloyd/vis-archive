@@ -16,6 +16,46 @@ namespace GENIVisuals
 {
     public partial class ValueHistory : VisualControl
     {
+        public static readonly DependencyProperty MinimumProperty =
+        DependencyProperty.RegisterAttached(
+            "Mimimum",
+            typeof(double?),
+            typeof(ValueHistory),
+            new PropertyMetadata(null));
+
+        public double? Minimum
+        {
+            get
+            {
+                return (double?)GetValue(MinimumProperty);
+            }
+            set
+            {
+                SetValue(MinimumProperty, value);
+            }
+        }
+
+        public static readonly DependencyProperty MaximumProperty =
+            DependencyProperty.RegisterAttached(
+            "Maximum",
+            typeof(double?),
+            typeof(ValueHistory),
+            new PropertyMetadata(null));
+
+        public double? Maximum
+        {
+            get
+            {
+                return (double?)GetValue(MaximumProperty);
+            }
+            set
+            {
+                SetValue(MaximumProperty, value);
+            }
+        }
+
+
+
         private static Color[] colors =
         {
             Colors.Blue,
