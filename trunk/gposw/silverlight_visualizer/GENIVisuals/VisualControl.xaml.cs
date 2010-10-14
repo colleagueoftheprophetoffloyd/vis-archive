@@ -109,6 +109,23 @@ namespace GENIVisuals
         //
         public virtual Point processAttributes(Alist attributes, VisualControl container)
         {
+            string value;
+
+            // Check height and width first, because
+            // they influence later items.
+
+            value = attributes.GetValue("width");
+            if (value != null)
+            {
+                Width = Convert.ToDouble(value);
+            }
+
+            value = attributes.GetValue("height");
+            if (value != null)
+            {
+                Height = Convert.ToDouble(value);
+            }
+
            
             // Initialize offset to center object.
             Point offset = new Point(-Width/2, -Height/2);
@@ -125,80 +142,75 @@ namespace GENIVisuals
             }
             
 
-            foreach (string attributeName in attributes.attributes.Keys)
+            // Container attributes.
+
+            value = attributes.GetValue("opacity");
+            if (value != null) {
+                Opacity = Convert.ToDouble(value);
+            }
+
+            value = attributes.GetValue("background");
+            if (value != null) {
+                Color bgColor = GetThisColor(value);
+                Background = new SolidColorBrush(bgColor);
+            }
+
+
+            // Offset attributes.
+
+            value = attributes.GetValue("xoffset");
+            if (value != null) {
+                offset.X += Convert.ToInt32(value);
+            }
+
+            value = attributes.GetValue("yoffset");
+            if (value != null) {
+                offset.Y += Convert.ToInt32(value);
+            }
+
+            value = attributes.GetValue("alignment");
+            if (value != null)
             {
-                string value = attributes.GetValue(attributeName);
-                switch (attributeName.ToLower())
+                switch (value.ToLower())
                 {
-                    // Container attributes.
-
-                    case "opacity":
-                        Opacity = Convert.ToDouble(value);
+                    case "center":
+                        // No change, this is default.
                         break;
 
-                    case "background":
-                        Color bgColor = GetThisColor(value);
-                        Background = new SolidColorBrush(bgColor);
+                    case "top":
+                        offset.Y += Height / 2;
                         break;
 
-
-                    // Offset attributes.
-
-                    case "xoffset":
-                        offset.X += Convert.ToInt32(value);
+                    case "bottom":
+                        offset.Y -= Height / 2;
                         break;
 
-                    case "yoffset":
-                        offset.Y += Convert.ToInt32(value);
+                    case "left":
+                        offset.X += Width / 2;
                         break;
 
-                    case "alignment":
-                        switch (value.ToLower())
-                        {
-                            case "center":
-                                // No change, this is default.
-                                break;
+                    case "right":
+                        offset.X -= Width / 2;
+                        break;
 
-                            case "top":
-                                offset.Y += Height / 2;
-                                break;
+                    case "topleft":
+                        offset.Y += Height / 2;
+                        offset.X += Width / 2;
+                        break;
 
-                            case "bottom":
-                                offset.Y -= Height / 2;
-                                break;
+                    case "bottomleft":
+                        offset.Y -= Height / 2;
+                        offset.X += Width / 2;
+                        break;
 
-                            case "left":
-                                offset.X += Width / 2;
-                                break;
+                    case "topright":
+                        offset.Y += Height / 2;
+                        offset.X -= Width / 2;
+                        break;
 
-                            case "right":
-                                offset.X -= Width / 2;
-                                break;
-
-                            case "topleft":
-                                offset.Y += Height / 2;
-                                offset.X += Width / 2;
-                                break;
-
-                            case "bottomleft":
-                                offset.Y -= Height / 2;
-                                offset.X += Width / 2;
-                                break;
-
-                            case "topright":
-                                offset.Y += Height / 2;
-                                offset.X -= Width / 2;
-                                break;
-
-                            case "bottomright":
-                                offset.Y -= Height / 2;
-                                offset.X -= Height / 2;
-                                break;
-                        }
-                        break; // end case "alignment"
-
-                    default:
-                        // ignore unknown attributes?
+                    case "bottomright":
+                        offset.Y -= Height / 2;
+                        offset.X -= Height / 2;
                         break;
                 }
             }
