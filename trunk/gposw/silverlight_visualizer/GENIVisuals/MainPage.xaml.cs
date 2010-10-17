@@ -26,9 +26,16 @@ namespace GENIVisuals
     public partial class MainPage : UserControl
     {
         private SessionParameters parameters;
-        private string URIParams = "";
-        WebClient wc = new WebClient();
+        private string postData = "";
         private string phpBase;
+
+        // These are associated with managing
+        // PHP downloads from database.
+        private string previousNodeResults = null;
+        private string previousLinkResults = null;
+        private string previousVisualResults = null;
+        private string previousStatusResults = null;
+        private Alist previousMapAttributes = new Alist();
 
 
         // All the {visuals, nodes, links} we care about.
@@ -113,49 +120,28 @@ namespace GENIVisuals
         }
 
 
+
+
         private void InializeBaseConfiguration()
         {
             // Gather up parameters to pass to PHP scripts.
+            List<string> postDataItems = new List<string>();
             if ((parameters.slice != null) && (parameters.slice != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?slice=" + parameters.slice;
-                else
-                    URIParams += "&slice=" + parameters.slice;
-            }
+                postDataItems.Add("slice=" + parameters.slice);
             if ((parameters.dbHost != null) && (parameters.dbHost != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?server=" + parameters.dbHost;
-                else
-                    URIParams += "&server=" + parameters.dbHost;
-            }
-            if ((parameters.dbUser != null) && (parameters.dbUser != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?dbUsername=" + parameters.dbUser;
-                else
-                    URIParams += "&dbUsername=" + parameters.dbUser;
-            }
-            if ((parameters.dbPassword != null) && (parameters.dbPassword != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?dbPassword=" + parameters.dbPassword;
-                else
-                    URIParams += "&dbPassword=" + parameters.dbPassword;
-            }
+                postDataItems.Add("server=" + parameters.dbHost);
+           if ((parameters.dbUser != null) && (parameters.dbUser != ""))
+                postDataItems.Add("dbUsername=" + parameters.dbUser);
+           if ((parameters.dbPassword != null) && (parameters.dbPassword != ""))
+                postDataItems.Add("dbPassword=" + parameters.dbPassword);
             if ((parameters.dbName != null) && (parameters.dbName != ""))
-            {
-                if (URIParams == "")
-                    URIParams = "?db=" + parameters.dbName;
-                else
-                    URIParams += "&db=" + parameters.dbName;
-            }
-
+                postDataItems.Add("db=" + parameters.dbName);
+            postData = string.Join("&", postDataItems);
+            
             // Figure out base URI for PHP scripts.
             if (parameters.useDebugServer)
             {
-                phpBase = parameters.debugServer + "/GENIVisuals/bin/php/";
+                phpBase = parameters.debugServer + "/GENIVisualsTesting/bin/php/";
             }
             else
             {
@@ -163,51 +149,90 @@ namespace GENIVisuals
                 phpBase = myURI.Substring(0, myURI.IndexOf("ClientBin")) + "bin/php/";
             }
 
-            // Get list of nodes from PHP script.
-            wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
-            wc.DownloadStringAsync(new Uri(phpBase + "get_nodes.php" + URIParams));
+            // Get information from DB.
+            WebClient wc = new WebClient();
+            wc.Encoding = System.Text.Encoding.UTF8;
+            wc.Headers["Content-type"] = "application/x-www-form-urlencoded";
+            wc.UploadStringCompleted += new UploadStringCompletedEventHandler(wc_UploadStringCompleted);
+            wc.UploadStringAsync(new Uri(phpBase + "get_all.php"), "POST", postData);
         }
 
-        private void InitializePopupConfiguration()
+
+        private JsonValue resultsOfType(JsonValue mixedResults,
+                                        string resultType)
         {
-            DisplayVisuals();
+            if (mixedResults.ContainsKey("results"))
+            {
+                JsonArray allResults = (JsonArray)mixedResults["results"];
+                if (allResults != null)
+                {
+                    foreach (JsonValue resultSet in allResults)
+                    {
+                        if (resultSet.ContainsKey("returnType") &&
+                            resultSet["returnType"] == resultType)
+                        {
+                            return resultSet;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
-        void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+
+        void wc_UploadStringCompleted(object sender, UploadStringCompletedEventArgs e)
         {
             if (e.Error == null && e.Result != "")
             {
                 JsonValue completeResult = JsonPrimitive.Parse(e.Result);
                 string resultType = completeResult["returnType"].ToString().Replace('"', ' ').Trim();
-                if (resultType == "nodes")
-                {
-                    LoadNodes(completeResult);
-                    wc.DownloadStringAsync(new Uri(phpBase + "get_links.php" + URIParams));
-                }
-                else if (resultType == "links")
-                {
-                    LoadLinks(completeResult);
-                    wc.DownloadStringAsync(new Uri(phpBase + "get_visuals.php" + URIParams));
-                }
-                else if (resultType == "visuals")
-                {
-                    LoadVisuals(completeResult);
-                    DisplayVisuals();
-                    SetupDataUpdates();
-                    updateQueue.Enqueue(null); // setup status updates
 
-                    if (parameters.useBogusData)
-                        SetupBogusDataUpdates();
+                if (resultType == "mixed")
+                {
+                    JsonValue nodeResults = resultsOfType(completeResult, "nodes");
+                    if ((nodeResults != null) &&
+                            (nodeResults.ToString() != previousNodeResults))
+                    {
+                        LoadNodes(nodeResults);
+                        previousNodeResults = nodeResults.ToString();
+                    }
+
+                    JsonValue linkResults = resultsOfType(completeResult, "links");
+                    if ((linkResults != null) &&
+                        (linkResults.ToString() != previousLinkResults))
+                    {
+                        LoadLinks(linkResults);
+                        previousLinkResults = linkResults.ToString();
+                    }
+
+                    JsonValue visualResults = resultsOfType(completeResult, "visuals");
+                    if ((visualResults != null) &&
+                        (visualResults.ToString() != previousVisualResults))
+                    {
+                        LoadVisuals(visualResults);
+                        previousVisualResults = visualResults.ToString();
+                        DisplayVisuals();
+                        SetupDataUpdates();
+
+                        if (parameters.useBogusData)
+                            SetupBogusDataUpdates();
+                    }
+
+                    JsonValue statusResults = resultsOfType(completeResult, "status");
+                    if ((statusResults != null) &&
+                        (statusResults.ToString() != previousStatusResults))
+                    {
+                        LoadStatus(statusResults);
+                        previousStatusResults = statusResults.ToString();
+                    }
+                    updateQueue.Enqueue(null); // Queue up next status update
                 }
                 else if (resultType == "data")
                 {
                     Visual vis = e.UserState as Visual;
                     if (vis != null)
                         LoadData(completeResult, vis);
-                }
-                else if (resultType == "status")
-                {
-                    LoadStatus(completeResult);
                 }
 
                 sliceLabel.Content = parameters.slice;
@@ -216,6 +241,14 @@ namespace GENIVisuals
             {
                 infoLabel.Content = e.Error;
             }
+        }
+
+
+
+
+        private void InitializePopupConfiguration()
+        {
+            DisplayVisuals();
         }
 
 
@@ -254,6 +287,7 @@ namespace GENIVisuals
         // Parse visual content out of JSON.
         private void LoadVisuals(JsonValue completeResult)
         {
+            // Forget what we know about visuals.
             visuals.Clear();
 
             // Loop over list of visuals.
@@ -272,11 +306,17 @@ namespace GENIVisuals
         //
         private void DisplayVisuals()
         {
-            // Map from data sources (nodes, links) to their associated visuals.
-            Dictionary<Object, List<Visual>> visualsForSource = 
-                new Dictionary<Object, List<Visual>>();
-
+            // Clear out display information and map overlay.
+            controls.Clear();
+            stats.Clear();
+            graphs.Clear();
             updateQueue.Clear();
+            OverlayLayer.Children.Clear();
+
+
+            // Map from data sources (nodes, links) to their associated visuals.
+            Dictionary<Object, List<Visual>> visualsForSource =
+                new Dictionary<Object, List<Visual>>();
 
             // Loop over list of visuals.  Group visuals associated with
             // same data source together in a dictionary.
@@ -286,7 +326,12 @@ namespace GENIVisuals
                 {
                     if (thisVisual.infoType == "map")
                     {
-                        SetMapParameters(thisVisual.renderAttributes);
+                        Alist newMapAttributes = thisVisual.renderAttributes;
+                        if (!newMapAttributes.Equals(previousMapAttributes))
+                        {
+                            previousMapAttributes = newMapAttributes;
+                            SetMapParameters(newMapAttributes);
+                        }
                     }
                     else
                     {
@@ -977,38 +1022,41 @@ namespace GENIVisuals
         // Send a data query for the next item in the queue.
         private void RequestNextUpdate(object sender, EventArgs e)
         {
-            if (wc.IsBusy || (updateQueue.Count <= 0))
+            //if (wc.IsBusy || (updateQueue.Count <= 0))
+            if (updateQueue.Count <= 0)
                 return;
+
+            WebClient wc = new WebClient();
+            wc.Encoding = System.Text.Encoding.UTF8;
+            wc.Headers["Content-type"] = "application/x-www-form-urlencoded";
+            wc.UploadStringCompleted += new UploadStringCompletedEventHandler(wc_UploadStringCompleted);
 
             Visual vis = updateQueue.Dequeue();
 
             // Build URI for query.
             string scriptName = "";
             string scriptParams = "";
-            Uri queryURI = null;
 
             // Status queries use get_status.php; data use get_data.php
             // *** Not pretty:  status query is indicated by null visualization
             if (vis == null)
             {
-                scriptName = "get_status.php";
-                if ((URIParams != null) && (URIParams != ""))
-                    scriptParams = URIParams;
+                scriptName = "get_all.php"; // Try using combined script.
+                Uri queryURI = new Uri(phpBase + scriptName);
+                wc.UploadStringAsync(queryURI, "POST", postData);
             }
             else
             {
                 scriptName = "get_data.php";
                 string statQuery = vis.statQuery;
-                if ((URIParams != null) && (URIParams != ""))
-                    scriptParams = URIParams + "&statQuery=" + statQuery;
-                else
-                    scriptParams = "?statQuery=" + statQuery;
+
+                // Issue query for data needed.     
+                string fullPostData = "statQuery=" + statQuery;
+                if ((postData != null) && (postData != ""))
+                    fullPostData = postData + "&" + fullPostData;
+                Uri queryURI = new Uri(phpBase + scriptName);
+                wc.UploadStringAsync(queryURI, "POST", fullPostData, vis);
             }
-
-            // Issue query for data needed.             
-
-            queryURI = new Uri(phpBase + scriptName + scriptParams);
-            wc.DownloadStringAsync(queryURI, vis);
         }
 
 

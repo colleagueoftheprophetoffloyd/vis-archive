@@ -1,8 +1,8 @@
 <?php
-include "sql_vars.php";
+include "sql_vars_post.php";
 include "sql_vars_data.php";
 
-$query = $_GET['statQuery'];
+$query = $_POST['statQuery'];
 
 // execute the query and gather the results
 mysql_select_db($db, $connection);

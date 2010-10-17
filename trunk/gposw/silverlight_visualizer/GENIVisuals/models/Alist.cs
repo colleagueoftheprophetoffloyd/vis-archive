@@ -64,5 +64,23 @@ namespace GENIVisuals.models
             attributes.Clear();
         }
 
+        public Boolean Equals(Alist otherAlist)
+        {
+            if (otherAlist == null)
+                return false;
+
+            if (this.attributes.Keys.Count != otherAlist.attributes.Keys.Count)
+                return false;
+
+            foreach (string key in this.attributes.Keys)
+                if ((!otherAlist.attributes.ContainsKey(key)) ||
+                    (this.attributes[key] != otherAlist.attributes[key]))
+                {
+                    return false;
+                }
+
+            return true;
+        }
+
     }
 }
