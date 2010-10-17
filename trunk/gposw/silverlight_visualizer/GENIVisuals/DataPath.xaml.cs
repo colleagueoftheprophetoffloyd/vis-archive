@@ -41,7 +41,35 @@ namespace GENIVisuals
             DataPath path = sender as DataPath;
             path.UpdatePathData();
         }
-        
+
+
+        public static readonly DependencyProperty ThicknessProperty =
+        DependencyProperty.RegisterAttached(
+            "Thickness",
+            typeof(double),
+            typeof(DataPath),
+            new PropertyMetadata(5.0, new PropertyChangedCallback(OnThicknessChanged)));
+
+        public double Thickness
+        {
+            get
+            {
+                return (double)GetValue(ThicknessProperty);
+            }
+
+            set
+            {
+                SetValue(ThicknessProperty, value);
+            }
+        }
+
+        private static void OnThicknessChanged(object sender, DependencyPropertyChangedEventArgs args)
+        {
+            DataPath path = sender as DataPath;
+            path.RenderedPath.StrokeThickness = (double)path.GetValue(ThicknessProperty);
+            path.SetStatus(path.CurrentStatus);
+        }
+
 
         // Bookkeeping functions for hand-made animations.
         private List<DoubleAnimationUsingPath> activePathAnimations =

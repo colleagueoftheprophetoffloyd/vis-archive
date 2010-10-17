@@ -190,12 +190,15 @@ namespace GENIVisuals
 
                 if (resultType == "mixed")
                 {
+                    Boolean changedSomething = false;
+
                     JsonValue nodeResults = resultsOfType(completeResult, "nodes");
                     if ((nodeResults != null) &&
                             (nodeResults.ToString() != previousNodeResults))
                     {
                         LoadNodes(nodeResults);
                         previousNodeResults = nodeResults.ToString();
+                        changedSomething = true;
                     }
 
                     JsonValue linkResults = resultsOfType(completeResult, "links");
@@ -204,6 +207,7 @@ namespace GENIVisuals
                     {
                         LoadLinks(linkResults);
                         previousLinkResults = linkResults.ToString();
+                        changedSomething = true;
                     }
 
                     JsonValue visualResults = resultsOfType(completeResult, "visuals");
@@ -212,6 +216,7 @@ namespace GENIVisuals
                     {
                         LoadVisuals(visualResults);
                         previousVisualResults = visualResults.ToString();
+                        changedSomething = true;
                         DisplayVisuals();
                         SetupDataUpdates();
 
@@ -221,7 +226,8 @@ namespace GENIVisuals
 
                     JsonValue statusResults = resultsOfType(completeResult, "status");
                     if ((statusResults != null) &&
-                        (statusResults.ToString() != previousStatusResults))
+                        (changedSomething ||
+                         (statusResults.ToString() != previousStatusResults)))
                     {
                         LoadStatus(statusResults);
                         previousStatusResults = statusResults.ToString();
@@ -242,8 +248,6 @@ namespace GENIVisuals
                 infoLabel.Content = e.Error;
             }
         }
-
-
 
 
         private void InitializePopupConfiguration()
@@ -798,6 +802,9 @@ namespace GENIVisuals
             else if (vis.infoType == "arc")
             {
                 DataPath arc = new DataPath();
+                string thicknessSpec = vis.renderAttributes.GetValue("thickness");
+                if ((thicknessSpec != null) && (thicknessSpec != ""))
+                    arc.Thickness = Convert.ToDouble(thicknessSpec);
                 arc.Waypoints = PointsForPath(vis);
                 control = arc;
             }
