@@ -39,21 +39,17 @@ namespace GENIVisuals
 
 
         // All the {visuals, nodes, links} we care about.
-        private Collection<Visual> visuals = new Collection<Visual>();
+        private List<Visual> visuals = new List<Visual>();
         private Dictionary<string, Node> nodes = new Dictionary<string, Node>();
         private Dictionary<string, Link> links = new Dictionary<string, Link>();
 
         
         // Objects associated with a particular visual.
         // Someday should probably bundle these up into a single thing.
-        private Dictionary<Visual, VisualControl> controls =
-            new Dictionary<Visual, VisualControl>();
+        private Dictionary<string, VisualControl> controls =
+            new Dictionary<string, VisualControl>();
         private Dictionary<Visual, Stat> stats =
             new Dictionary<Visual, Stat>();
-        private Dictionary<string, Location> locations =
-            new Dictionary<string, Location>();
-        private Dictionary<string, Point> offsets =
-            new Dictionary<string, Point>();
                 
         // Keep a value history for each object so that multiple line plots share same surface.
         private Dictionary<Object, ValueHistory> graphs = new Dictionary<Object, ValueHistory>();
@@ -320,25 +316,23 @@ namespace GENIVisuals
             controls.Clear();
             stats.Clear();
             graphs.Clear();
-            locations.Clear();
-            offsets.Clear();
             updateQueue.Clear();
             OverlayLayer.Children.Clear();
 
-
-            // Map from data sources (nodes, links) to their associated visuals.
-            Dictionary<Object, List<Visual>> visualsForSource =
-                new Dictionary<Object, List<Visual>>();
+            // Map from data sources (nodes, links)
+            // to Stackers (containers for visuals associated with one object).
+            Dictionary<Object, Stacker> stackers = new Dictionary<object, Stacker>();
 
             // Loop over list of visuals.  Group visuals associated with
             // same data source together in a dictionary.
-            foreach (Visual thisVisual in visuals)
+            visuals.Sort();
+            foreach (Visual vis in visuals)
             {
-                if (inMySubSlice(thisVisual))
+                if (inMySubSlice(vis))
                 {
-                    if (thisVisual.infoType == "map")
+                    if (vis.infoType == "map")
                     {
-                        Alist newMapAttributes = thisVisual.renderAttributes;
+                        Alist newMapAttributes = vis.renderAttributes;
                         if (!newMapAttributes.Equals(previousMapAttributes))
                         {
                             previousMapAttributes = newMapAttributes;
@@ -347,86 +341,66 @@ namespace GENIVisuals
                     }
                     else
                     {
-                        Object dataSource = null;
-                        if ((thisVisual.objType == "node") &&
-                            nodes.ContainsKey(thisVisual.objName))
-                        {
-                            dataSource = nodes[thisVisual.objName];
-                        }
-                        else if ((thisVisual.objType == "link") &&
-                                 links.ContainsKey(thisVisual.objName))
-                        {
-                            dataSource = links[thisVisual.objName];
-                        }
+                        Object dataSource = FindObject(vis.objType, vis.objName);
+                        string title = vis.objName;
+                        VisualControl control = MakeVisControl(vis);
+                        control.ParentVisual = vis;
 
-                        if (dataSource == null)
+                        if (vis.renderAttributes.GetValue("Title") != null)
+                            title = vis.renderAttributes.GetValue("Title");
+
+                        if (control != null)
                         {
-                            ShowError(String.Format("DisplayVisuals couldn't find object {0} of type {1} for visual of type {2}.",
-                                                    thisVisual.objName, thisVisual.objType, thisVisual.infoType));
-                        }
-                        else
-                        {
-                            if (!visualsForSource.ContainsKey(dataSource))
-                                visualsForSource[dataSource] = new List<Visual>();
-                            visualsForSource[dataSource].Add(thisVisual);
+                            if (nonOverlayVisualTypes.Contains(vis.infoType))
+                            {
+                                Location location = GetSourceLocation(vis.objName);
+                                control.anchorLocation = location;
+                                control.processAttributes(vis.renderAttributes, null);
+                                Point offset = new Point(control.anchorOffset.X + control.alignmentOffset.X,
+                                                         control.anchorOffset.Y + control.alignmentOffset.Y);
+                                OverlayLayer.AddChild(control, location, offset);
+                            }
+                            else
+                            {
+                                Stacker stacker;
+                                if (stackers.ContainsKey(dataSource))
+                                    stacker = stackers[dataSource];
+                                else
+                                {
+                                    stacker = new Stacker();
+                                    stackers[dataSource] = stacker;
+                                    stacker.ParentVisual = vis;
+                                }
+                                if (!stacker.Panel.Children.Contains(control))
+                                    stacker.Panel.Children.Add(control);
+                                Location location = GetLocation(vis.objType, vis.objName);
+                                control.anchorLocation = location;
+                                control.processAttributes(vis.renderAttributes, stacker);
+                                stacker.anchorLocation = control.anchorLocation;
+                                stacker.anchorOffset = control.anchorOffset;
+                                stacker.alignmentOffset = control.alignmentOffset; // This is probably wrong. ***
+                            }
+
+                            if ((vis.statQuery != null) && (vis.statQuery != ""))
+                                updateQueue.Enqueue(vis);
+
+                            controls[vis.name] = control;
                         }
                     }
                 }
             }
 
-            // Build controls for the data sources and data.
-            foreach (Object obj in visualsForSource.Keys)
-            {
-                string objType = visualsForSource[obj][0].objType;
-                string objName = visualsForSource[obj][0].objName;
-                string title = objName;
-                Stacker stacker = null;
-                Point offset = new Point(0, 0);
-
-                foreach (Visual vis in visualsForSource[obj])
-                {
-                    VisualControl control = MakeVisControl(vis);
-                    control.ParentVisual = vis;
-
-                    if (vis.renderAttributes.GetValue("Title") != null)
-                        title = vis.renderAttributes.GetValue("Title");
-
-                    if (control != null)
-                    {
-                        if (nonOverlayVisualTypes.Contains(vis.infoType))
-                        {
-                            Location location = GetSourceLocation(objName);
-                            offset = control.processAttributes(vis.renderAttributes, null);
-                            locations[vis.name] = location;
-                            offsets[vis.name] = offset;
-                            OverlayLayer.AddChild(control, location, offset);
-                        }
-                        else
-                        {
-                            if (stacker == null)
-                                stacker = new Stacker();
-                            if (!stacker.Panel.Children.Contains(control))
-                                stacker.Panel.Children.Add(control);
-                            offset = control.processAttributes(vis.renderAttributes, stacker);
-                            locations[vis.name] = GetLocation(objType, objName);
-                            offsets[vis.name] = offset;
-                        }
-
-                        if ((vis.statQuery != null) && (vis.statQuery != ""))
-                            updateQueue.Enqueue(vis);
-
-                        controls[vis] = control;
-                    }
-                }
-
-                if (stacker != null)
-                {
-                    Location location = GetLocation(objType, objName);
-                    OverlayLayer.AddChild(stacker, location, offset);
-                }
+            foreach (Object obj in stackers.Keys) {
+                Stacker stacker = stackers[obj];
+                Visual vis = stacker.ParentVisual;
+                Location location = stacker.anchorLocation;
+                Point offset = new Point(stacker.anchorOffset.X + stacker.alignmentOffset.X,
+                                         stacker.anchorOffset.Y + stacker.alignmentOffset.Y);
+                OverlayLayer.AddChild(stacker, location, offset);
             }
         }
 
+        
         // Subslices match if they have the same name, or are both null/empty.
         private bool inMySubSlice(Visual vis)
         {
@@ -494,9 +468,9 @@ namespace GENIVisuals
             foreach (StatusInfo info in allStatusInfo)
                 foreach (Visual vis in visuals)
                     if ((vis.statusHandle == info.Handle) &&
-                        (controls.ContainsKey(vis)))
+                        (controls.ContainsKey(vis.name)))
                     {
-                        VisualControl control = controls[vis];
+                        VisualControl control = controls[vis.name];
                         if (control.CurrentStatus != info.Status)
                             control.CurrentStatus = info.Status;
                     }
@@ -613,16 +587,12 @@ namespace GENIVisuals
             return result;
         }
 
-        private Location VisPart(string spec)
+        private string VisPart(string spec)
         {
             string visName = spec.Split('+')[0];
 
-            if ((visName != null) &&
-                (visName != "") &&
-                locations.ContainsKey(visName))
-            {
-                return locations[visName];
-            }
+            if ((visName != null) && (visName != ""))
+                return visName;
             else
                 return null;
         }
@@ -643,11 +613,29 @@ namespace GENIVisuals
             {
                 foreach (string waypointSpec in datapath.Split(':'))
                 {
-                    Location loc = VisPart(waypointSpec);
+                    Location loc;
+                    Point locOffset;
+
+                    string visName = VisPart(waypointSpec);
+                    if (controls.ContainsKey(visName))
+                    {
+                        VisualControl control = controls[visName];
+                        loc = control.anchorLocation;
+                        locOffset = control.anchorOffset;
+                    }
+                    else
+                    {
+                        loc = null;
+                        locOffset = new Point(0, 0);
+                    }
+
                     if (loc != null)
                     {
                         datapathLocations.Add(loc);
-                        datapathOffsets.Add(OffsetPart(waypointSpec));
+                        Point additionalOffset = OffsetPart(waypointSpec);
+                        Point offset = new Point(locOffset.X + additionalOffset.X,
+                                                 locOffset.Y + additionalOffset.Y);
+                        datapathOffsets.Add(offset);                                                        
                     }
                 }
             }
@@ -910,7 +898,7 @@ namespace GENIVisuals
                 return;
             }
 
-            ZoomButton zb = controls[vis] as ZoomButton;
+            ZoomButton zb = controls[vis.name] as ZoomButton;
 
 
             // Make a new map window in a floatable child window.
@@ -1131,15 +1119,18 @@ namespace GENIVisuals
             {
                 if (inMySubSlice(vis) &&
                     (vis.infoType == "arc") &&
-                    (controls.ContainsKey(vis)))
+                    (controls.ContainsKey(vis.name)))
                 {
-                    DataPath arc = controls[vis] as DataPath;
+                    DataPath arc = controls[vis.name] as DataPath;
                     if (OverlayLayer.Children.Contains(arc))
                         OverlayLayer.Children.Remove(arc);
                     arc.Waypoints = PointsForPath(vis);
 
                     Location location = GetSourceLocation(vis.objName);
-                    Point offset = arc.processAttributes(vis.renderAttributes, null);
+                    arc.anchorLocation = location;
+                    arc.processAttributes(vis.renderAttributes, null);
+                    Point offset = new Point(arc.anchorOffset.X + arc.alignmentOffset.X,
+                                             arc.anchorOffset.Y + arc.alignmentOffset.Y);
                     OverlayLayer.AddChild(arc, location, offset);
                 }
             }

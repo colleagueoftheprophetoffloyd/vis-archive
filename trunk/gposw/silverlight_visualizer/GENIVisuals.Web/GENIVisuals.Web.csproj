@@ -38,6 +38,8 @@
     <Content Include="images\blankTile.png" />
     <Content Include="images\Clemson.png" />
     <Content Include="images\ec2.png" />
+    <Content Include="images\Eucalyptus-White.png" />
+    <Content Include="images\Eucalyptus.png" />
     <Content Include="images\GaTech.jpg" />
     <Content Include="images\GENI.gif" />
     <Content Include="images\GENI.jpg" />

@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Reflection;
+using Microsoft.Maps.MapControl;
 using GENIVisuals.models;
 
 namespace GENIVisuals
@@ -37,7 +38,23 @@ namespace GENIVisuals
             }
         }
 
+        // The visual on whose behalf control is displayed.
         public models.Visual ParentVisual { get; set; }
+
+        // Next three members are about the positioning of the object on the map.
+        // 
+        // Anchor location names the (lat,lon) location that anchors the object.
+        // Anchor offset is a user-provided offset from that point.
+        // Alignment offset is an internally-computed offset used to align the
+        // object according to user request.
+        //
+        // So, a control of size (100,100) that the user has asked to be centered
+        // at an offset of (200,300) from 23N, 75W might have an anchor location
+        // of (23, -75), an anchor offset of (200,300), and an alignment offset
+        // of (-50,-50) to cause it to be centered.
+        public Location anchorLocation { get; set; }
+        public Point anchorOffset { get; set; }
+        public Point alignmentOffset { get; set; }
 
         protected Storyboard activeStoryboard = null;
         private static void OnCurrentStatusChanged(object sender, DependencyPropertyChangedEventArgs args)
@@ -104,10 +121,11 @@ namespace GENIVisuals
         // more likely apply to the container in which it's held or
         // indicate its placement on the map.
         //
-        // Update provided container object as appropriate (if non-null),
-        // and return a Point indicating offset information.
+        // Update provided container object as appropriate (if non-null).
         //
-        public virtual Point processAttributes(Alist attributes, VisualControl container)
+        // Update alignmentOffset with offset information.
+        //
+        public virtual void processAttributes(Alist attributes, VisualControl container)
         {
             string value;
 
@@ -127,18 +145,18 @@ namespace GENIVisuals
             }
 
            
-            // Initialize offset to center object.
-            Point offset = new Point(-Width/2, -Height/2);
-            if (double.IsNaN(offset.X) ||
-                double.IsInfinity(offset.X))
+            // Initialize alignment offset to center object.
+            Point newAlignOffset = new Point(-Width/2, -Height/2);
+            if (double.IsNaN(newAlignOffset.X) ||
+                double.IsInfinity(newAlignOffset.X))
             {
-                offset.X = 0;
+                newAlignOffset.X = 0;
             }
 
-            if (double.IsNaN(offset.Y) ||
-                double.IsInfinity(offset.Y))
+            if (double.IsNaN(newAlignOffset.Y) ||
+                double.IsInfinity(newAlignOffset.Y))
             {
-                offset.Y = 0;
+                newAlignOffset.Y = 0;
             }
             
 
@@ -155,19 +173,6 @@ namespace GENIVisuals
                 Background = new SolidColorBrush(bgColor);
             }
 
-
-            // Offset attributes.
-
-            value = attributes.GetValue("xoffset");
-            if (value != null) {
-                offset.X += Convert.ToInt32(value);
-            }
-
-            value = attributes.GetValue("yoffset");
-            if (value != null) {
-                offset.Y += Convert.ToInt32(value);
-            }
-
             value = attributes.GetValue("alignment");
             if (value != null)
             {
@@ -178,56 +183,73 @@ namespace GENIVisuals
                         break;
 
                     case "top":
-                        offset.Y += Height / 2;
+                        newAlignOffset.Y += Height / 2;
                         break;
 
                     case "bottom":
-                        offset.Y -= Height / 2;
+                        newAlignOffset.Y -= Height / 2;
                         break;
 
                     case "left":
-                        offset.X += Width / 2;
+                        newAlignOffset.X += Width / 2;
                         break;
 
                     case "right":
-                        offset.X -= Width / 2;
+                        newAlignOffset.X -= Width / 2;
                         break;
 
                     case "topleft":
-                        offset.Y += Height / 2;
-                        offset.X += Width / 2;
+                        newAlignOffset.Y += Height / 2;
+                        newAlignOffset.X += Width / 2;
                         break;
 
                     case "bottomleft":
-                        offset.Y -= Height / 2;
-                        offset.X += Width / 2;
+                        newAlignOffset.Y -= Height / 2;
+                        newAlignOffset.X += Width / 2;
                         break;
 
                     case "topright":
-                        offset.Y += Height / 2;
-                        offset.X -= Width / 2;
+                        newAlignOffset.Y += Height / 2;
+                        newAlignOffset.X -= Width / 2;
                         break;
 
                     case "bottomright":
-                        offset.Y -= Height / 2;
-                        offset.X -= Height / 2;
+                        newAlignOffset.Y -= Height / 2;
+                        newAlignOffset.X -= Height / 2;
                         break;
                 }
             }
 
-            if (double.IsNaN(offset.X) ||
-                double.IsInfinity(offset.X))
+            if (double.IsNaN(newAlignOffset.X) ||
+                double.IsInfinity(newAlignOffset.X))
             {
-                offset.X = 0;
+                newAlignOffset.X = 0;
             }
 
-            if (double.IsNaN(offset.Y) ||
-                double.IsInfinity(offset.Y))
+            if (double.IsNaN(newAlignOffset.Y) ||
+                double.IsInfinity(newAlignOffset.Y))
             {
-                offset.Y = 0;
+                newAlignOffset.Y = 0;
             }
 
-            return offset;
+
+            // Explicit offset attributes.
+
+            Point newAnchorOffset = new Point(0, 0);
+            value = attributes.GetValue("xoffset");
+            if (value != null)
+            {
+                newAnchorOffset.X += Convert.ToInt32(value);
+            }
+
+            value = attributes.GetValue("yoffset");
+            if (value != null)
+            {
+                newAnchorOffset.Y += Convert.ToInt32(value);
+            }
+
+            anchorOffset = newAnchorOffset;
+            alignmentOffset = newAlignOffset;
         }
 
 

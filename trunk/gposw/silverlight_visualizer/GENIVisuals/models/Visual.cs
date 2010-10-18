@@ -13,7 +13,7 @@ using System.Json;
 
 namespace GENIVisuals.models
 {
-    public class Visual
+    public class Visual : IComparable<Visual>
     {
         public string name { get; set; }
         public string sliceName { get; set; }
@@ -75,6 +75,41 @@ namespace GENIVisuals.models
                 renderAttributes = new Alist(((string) visualJson["renderAttributes"]).Trim());
             else
                 renderAttributes = new Alist();
+        }
+
+        //
+        // Default comparison for visuals, used
+        // when creating display objects.
+        //
+        // First, order by infoType:
+        //   map comes first,
+        //   arc comes last,
+        //   everything else is the same.
+        //
+        // Second, order by object name.
+        // Finally, order by sequence.
+        public int CompareTo(Visual other)
+        {
+            if (other == null)
+                return 1;
+
+            if (infoType != other.infoType)
+            {
+                if ((infoType == "map") || (other.infoType == "arc"))
+                    return -1;
+                if ((infoType == "arc") || (other.infoType == "map"))
+                    return 1;
+            }
+
+            if (objName != other.objName)
+            {
+                if (objName == null)
+                    return -1;
+                else
+                    return objName.CompareTo(other.objName);
+            }
+
+            return sequence.CompareTo(other.sequence);
         }
     }
 }
