@@ -32,7 +32,6 @@ namespace GENIVisuals
             set
             {
                 SetValue(WaypointsProperty, value);
-                //UpdatePathData();
             }
         }
 
@@ -40,6 +39,7 @@ namespace GENIVisuals
         {
             DataPath path = sender as DataPath;
             path.UpdatePathData();
+            path.SetStatus(path.CurrentStatus);
         }
 
 
@@ -71,6 +71,23 @@ namespace GENIVisuals
         }
 
 
+        // Bookkeeping functions for hand-made storyboards.
+        private List<Storyboard> activeAdditionalStoryboards =
+            new List<Storyboard>();
+        private void BeginAdditionalStoryboards()
+        {
+            if (activeAdditionalStoryboards != null)
+                foreach (Storyboard sb in activeAdditionalStoryboards)
+                    sb.Begin();
+        }
+        private void StopAdditionalStoryboards()
+        {
+            if (activeAdditionalStoryboards != null)
+                foreach (Storyboard sb in activeAdditionalStoryboards)
+                    sb.Stop();
+        }
+
+
         // Bookkeeping functions for hand-made animations.
         private List<DoubleAnimationUsingPath> activePathAnimations =
             new List<DoubleAnimationUsingPath>();
@@ -93,7 +110,7 @@ namespace GENIVisuals
         {
             if (activeAnimatedObjects != null)
                 foreach (UIElement element in activeAnimatedObjects)
-                    if (! AnimationCanvas.Children.Contains(element))
+                    if (!AnimationCanvas.Children.Contains(element))
                         AnimationCanvas.Children.Add(element);
         }
         private void RemoveActiveAnimatedObjects()
@@ -113,6 +130,8 @@ namespace GENIVisuals
 
             if (activeStoryboard != null)
                 activeStoryboard.Stop();
+            StopAdditionalStoryboards();
+            activeAdditionalStoryboards.Clear();
             StopPathAnimations();
             activePathAnimations.Clear();
             RemoveActiveAnimatedObjects();
@@ -126,6 +145,7 @@ namespace GENIVisuals
                 SetupAnimationsForStatus(newStatus);
                 AddActiveAnimatedObjects();
                 BeginPathAnimations();
+                BeginAdditionalStoryboards();
             }
 
         }
@@ -141,6 +161,21 @@ namespace GENIVisuals
             FigureCollection.Add(fig);
         }
 
+        private PathGeometry GetReversePathGeometry()
+        {
+            PathGeometry geo = new PathGeometry();
+            PathFigure fig = new PathFigure();
+            PolyLineSegment polyline = new PolyLineSegment();
+            foreach (Point point in Waypoints.Reverse())
+            {
+                polyline.Points.Add(point);
+            }
+            fig.Segments.Clear();
+            fig.Segments.Add(polyline);
+            geo.Figures.Add(fig);
+            return geo;
+        }
+
         private static string[] storyboardStatusNames = 
         {
             "normal",
@@ -154,8 +189,15 @@ namespace GENIVisuals
 
         private static string[] pathAnimationStatusNames = 
         {
-           "violin",
-           "puzzle"
+            "violin",
+            "violin-forward",
+            "violin-backward",
+            "puzzle",
+            "puzzle-forward",
+            "puzzle-backward",
+            "balls-forward",
+            "balls-backward",
+            "balls-both"
         };
 
         private static string[] statusNames = 
@@ -168,12 +210,19 @@ namespace GENIVisuals
             "forward",
             "backward",
             "violin",
-            "puzzle"
+            "violin-forward",
+            "violin-backward",
+            "puzzle",
+            "puzzle-forward",
+            "puzzle-backward",
+            "balls-forward",
+            "balls-backward",
+            "balls-both"
         };
+
         private static List<string> storyboardStatusList = new List<string>(storyboardStatusNames);
         private static List<string> pathAnimationStatusList = new List<string>(pathAnimationStatusNames);
         private static List<string> displayableStatusList = new List<string>(statusNames);
-
 
         protected override List<string> getDisplayableStatusList()
         {
@@ -207,70 +256,96 @@ namespace GENIVisuals
         protected void SetupAnimationsForStatus(string status)
         {
             if (status == "violin")
-                SetupViolinAnimations();
+                SetupViolinAnimations("forward", "normal");
+            if (status == "violin-forward")
+                SetupViolinAnimations("forward", "forward");
+            if (status == "violin-backward")
+                SetupViolinAnimations("backward", "backward");
+
             if (status == "puzzle")
-                SetupPuzzleAnimations();
+                SetupPuzzleAnimations("forward", "normal");
+            if (status == "puzzle-forward")
+                SetupPuzzleAnimations("forward", "forward");
+            if (status == "puzzle-backward")
+                SetupPuzzleAnimations("backward", "backward");
+
+            if (status == "balls-forward")
+                SetupBallsAnimations("forward", "normal");
+            if (status == "balls-backward")
+                SetupBallsAnimations("backward", "normal");
+            if (status == "balls-both")
+                SetupBallsAnimations("both", "normal");
         }
 
 
-        private void SetupImageAnimationAlongPath(Image image, 
-                                                  string directon, 
-                                                  Boolean rotate)
+        private void SetupImageAnimationAlongPath(Storyboard sb,
+                                                  FrameworkElement element, 
+                                                  string direction, 
+                                                  Boolean rotate,
+                                                  double delay)
         {
-            activeAnimatedObjects.Add(image);
+            const double pathDuration = 2.0;
+
+            // Want to translate object to center it along path.
+            TransformGroup tg = new TransformGroup();
+            TranslateTransform translate = new TranslateTransform();
+            translate.X = -1.0 * element.Width / 2.0;
+            translate.Y = -1.0 * element.Height / 2.0;
+            tg.Children.Add(translate);
+
+            PathGeometry path;
+            if (direction == "forward")
+                path = PathGeometry;
+            else
+                path = GetReversePathGeometry();
+
+            activeAnimatedObjects.Add(element);
 
             if (rotate)
             {
                 RotateTransform rotation = new RotateTransform();
-                image.RenderTransform = rotation;
+                tg.Children.Add(rotation);
 
-                Storyboard sb = new Storyboard();
                 DoubleAnimation animRot = new DoubleAnimation();
-                animRot.BeginTime = TimeSpan.Zero;
-                animRot.Duration = TimeSpan.FromSeconds(1.0);
+                animRot.BeginTime = TimeSpan.FromSeconds(delay);
+                animRot.Duration = TimeSpan.FromSeconds(pathDuration / 2.0);
                 animRot.From = 0.0;
                 animRot.To = 360.0;
                 animRot.RepeatBehavior = RepeatBehavior.Forever;
                 Storyboard.SetTarget(animRot, rotation);
                 Storyboard.SetTargetProperty(animRot, new PropertyPath("Angle"));
                 sb.Children.Add(animRot);
-                activeStoryboard = sb;
-                activeStoryboard.Begin();
             }
+            element.RenderTransform = tg;
 
             DoubleAnimationUsingPath animX;
             animX = new DoubleAnimationUsingPath();
-            animX.BeginTime = TimeSpan.Zero;
-            animX.Duration = TimeSpan.FromSeconds(2.0);
+            animX.BeginTime = TimeSpan.FromSeconds(delay);
+            animX.Duration = TimeSpan.FromSeconds(pathDuration);
             animX.RepeatBehavior = RepeatBehavior.Forever;
-            animX.PathGeometry = PathGeometry;
+            animX.PathGeometry = path;
             animX.Source = PathAnimationSource.X;
-            animX.Target = image;
+            animX.Target = element;
             animX.TargetProperty = new PropertyPath("(Canvas.Left)");
             animX.Tolerance = 30;
 
             DoubleAnimationUsingPath animY;
             animY = new DoubleAnimationUsingPath();
-            animY.BeginTime = TimeSpan.Zero;
-            animY.Duration = TimeSpan.FromSeconds(2.0);
+            animY.BeginTime = TimeSpan.FromSeconds(delay);
+            animY.Duration = TimeSpan.FromSeconds(pathDuration);
             animY.RepeatBehavior = RepeatBehavior.Forever;
-            animY.PathGeometry = PathGeometry;
+            animY.PathGeometry = path;
             animY.Source = PathAnimationSource.Y;
-            animY.Target = image;
+            animY.Target = element;
             animY.TargetProperty = new PropertyPath("(Canvas.Top)");
             animY.Tolerance = 30;
 
             activePathAnimations.Add(animX);
             activePathAnimations.Add(animY);
-
-            if (directon == "forward")
-                activeStoryboard = ForwardStoryboard;
-            else
-                activeStoryboard = BackwardStoryboard;
-            activeStoryboard.Begin();
         }
 
-        private void SetupViolinAnimations()
+        private void SetupViolinAnimations(string violinDir,
+                                           string pathDir)
         {
             Image violinImage = new Image();
             violinImage.Height = 100;
@@ -281,10 +356,21 @@ namespace GENIVisuals
             Uri imageSourceURI = new Uri(uriString, UriKind.Absolute);
             violinImage.Source = new System.Windows.Media.Imaging.BitmapImage(imageSourceURI);
 
-            SetupImageAnimationAlongPath(violinImage, "forward", true);
+            Storyboard sb = new Storyboard();
+            SetupImageAnimationAlongPath(sb, violinImage, violinDir, true, 0.0);
+            activeAdditionalStoryboards.Add(sb);
+            BeginAdditionalStoryboards();
+
+            if (pathDir == "forward")
+                activeStoryboard = ForwardStoryboard;
+            else if (pathDir == "backward")
+                activeStoryboard = BackwardStoryboard;
+            if (activeStoryboard != null)
+                activeStoryboard.Begin();
         }
 
-        private void SetupPuzzleAnimations()
+        private void SetupPuzzleAnimations(string puzzleDir,
+                                           string pathDir)
         {
             Image puzzleImage = new Image();
             puzzleImage.Height = 100;
@@ -295,7 +381,62 @@ namespace GENIVisuals
             Uri imageSourceURI = new Uri(uriString, UriKind.Absolute);
             puzzleImage.Source = new System.Windows.Media.Imaging.BitmapImage(imageSourceURI);
 
-            SetupImageAnimationAlongPath(puzzleImage, "forward", false);
+            Storyboard sb = new Storyboard();
+            SetupImageAnimationAlongPath(sb, puzzleImage, puzzleDir, false, 0.0);
+            activeAdditionalStoryboards.Add(sb);
+            BeginAdditionalStoryboards();
+
+            if (pathDir == "forward")
+                activeStoryboard = ForwardStoryboard;
+            else if (pathDir == "backward")
+                activeStoryboard = BackwardStoryboard;
+            if (activeStoryboard != null)
+                activeStoryboard.Begin();
+        }
+
+
+        private Ellipse OneBall()
+        {
+            Ellipse ball = new Ellipse();
+            ball.Stroke = new SolidColorBrush(Colors.Black);
+            ball.StrokeThickness = Thickness;
+            ball.Fill = new SolidColorBrush(Colors.White);
+            ball.Width = Thickness * 4.0;
+            ball.Height = Thickness * 4.0;
+
+            return ball;
+        }
+
+        private void SetupBallsAnimations(string ballsDir,
+                                          string pathDir)
+        {
+            const int numBalls = 4;
+            Storyboard sb = new Storyboard();
+
+
+            if ((ballsDir == "both") ||
+                (ballsDir == "forward"))
+            {
+                for (int index = 0; index < numBalls; index++)
+                    SetupImageAnimationAlongPath(sb, OneBall(), "forward", false, 0.5 * index);
+            }
+
+            if ((ballsDir == "both") ||
+                (ballsDir == "backward"))
+            {
+                for (int index = 0; index < numBalls; index++)
+                    SetupImageAnimationAlongPath(sb, OneBall(), "backward", false, 0.5 * index);
+            }
+
+            activeAdditionalStoryboards.Add(sb);
+            BeginAdditionalStoryboards();
+
+            if (pathDir == "forward")
+                activeStoryboard = ForwardStoryboard;
+            else if (pathDir == "backward")
+                activeStoryboard = BackwardStoryboard;
+            if (activeStoryboard != null)
+                activeStoryboard.Begin();
         }
 
 

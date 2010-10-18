@@ -15,6 +15,7 @@ namespace GENIVisuals.models
 {
     public class Visual
     {
+        public string name { get; set; }
         public string sliceName { get; set; }
         public string subSlice { get; set; }
         public int sequence { get; set; } // Order in which to display items
@@ -32,10 +33,12 @@ namespace GENIVisuals.models
         public Visual(JsonValue visualJson)
         {
             // Parse visual content out of JSON
-            // Ignoring id and sliceName fields from database.
+            // Ignoring id field from database.
 
             if (visualJson["sliceName"] != null)
-                sliceName = ((string) visualJson["sliceName"]).Trim();
+                sliceName = ((string)visualJson["sliceName"]).Trim();
+            if (visualJson["name"] != null)
+                name = ((string)visualJson["name"]).Trim();
             if (visualJson["subSlice"] != null)
                 subSlice = ((string) visualJson["subSlice"]).Trim();
             if (visualJson["sequence"] != null)

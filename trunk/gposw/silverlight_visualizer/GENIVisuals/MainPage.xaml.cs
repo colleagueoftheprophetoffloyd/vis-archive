@@ -45,10 +45,15 @@ namespace GENIVisuals
 
         
         // Objects associated with a particular visual.
+        // Someday should probably bundle these up into a single thing.
         private Dictionary<Visual, VisualControl> controls =
             new Dictionary<Visual, VisualControl>();
         private Dictionary<Visual, Stat> stats =
             new Dictionary<Visual, Stat>();
+        private Dictionary<string, Location> locations =
+            new Dictionary<string, Location>();
+        private Dictionary<string, Point> offsets =
+            new Dictionary<string, Point>();
                 
         // Keep a value history for each object so that multiple line plots share same surface.
         private Dictionary<Object, ValueHistory> graphs = new Dictionary<Object, ValueHistory>();
@@ -212,7 +217,8 @@ namespace GENIVisuals
 
                     JsonValue visualResults = resultsOfType(completeResult, "visuals");
                     if ((visualResults != null) &&
-                        (visualResults.ToString() != previousVisualResults))
+                        (changedSomething ||
+                         (visualResults.ToString() != previousVisualResults)))
                     {
                         LoadVisuals(visualResults);
                         previousVisualResults = visualResults.ToString();
@@ -314,6 +320,8 @@ namespace GENIVisuals
             controls.Clear();
             stats.Clear();
             graphs.Clear();
+            locations.Clear();
+            offsets.Clear();
             updateQueue.Clear();
             OverlayLayer.Children.Clear();
 
@@ -389,6 +397,8 @@ namespace GENIVisuals
                         {
                             Location location = GetSourceLocation(objName);
                             offset = control.processAttributes(vis.renderAttributes, null);
+                            locations[vis.name] = location;
+                            offsets[vis.name] = offset;
                             OverlayLayer.AddChild(control, location, offset);
                         }
                         else
@@ -398,6 +408,8 @@ namespace GENIVisuals
                             if (!stacker.Panel.Children.Contains(control))
                                 stacker.Panel.Children.Add(control);
                             offset = control.processAttributes(vis.renderAttributes, stacker);
+                            locations[vis.name] = GetLocation(objType, objName);
+                            offsets[vis.name] = offset;
                         }
 
                         if ((vis.statQuery != null) && (vis.statQuery != ""))
@@ -409,21 +421,6 @@ namespace GENIVisuals
 
                 if (stacker != null)
                 {
-                    //FloatableWindow fw = new FloatableWindow();
-                    //fw.ResizeMode = ResizeMode.CanResize;
-                    //fw.Title = title;
-                    //fw.Content = stacker;
-                    //fw.SetValue(Grid.RowProperty, 1);
-                    //fw.SetValue(Grid.ColumnProperty, 1);
-                    //fw.SetValue(Grid.RowSpanProperty, 1);
-                    //fw.SetValue(Grid.ColumnSpanProperty, 1);
-
-                    //// Position popup.
-                    //fw.ParentLayoutRoot = mapCanvas;
-                    //Location location = GetLocation(objType, objName);
-                    //Point centerPoint = sliceMap.LocationToViewportPoint(location);
-                    //fw.Show(centerPoint.X, centerPoint.Y);
-
                     Location location = GetLocation(objType, objName);
                     OverlayLayer.AddChild(stacker, location, offset);
                 }
@@ -592,9 +589,9 @@ namespace GENIVisuals
 
         //
         // Helper functions for PointsForPath.  Return pixel offset and
-        // node parts in a node spec in a datapath.
+        // visual location parts in a point spec in a datapath.
         // Example:
-        // node1+(-100;50) (means X,Y offset of 1100,50 from location of node1)
+        // vis1+(-100;50) (means X,Y offset of 1100,50 from location of vis1)
         //
         private Point OffsetPart(string spec)
         {
@@ -616,82 +613,63 @@ namespace GENIVisuals
             return result;
         }
 
-        private string NodePart(string spec)
+        private Location VisPart(string spec)
         {
-            char[] splitChars = { '+', '-' };
-            return spec.Split(splitChars)[0];
+            string visName = spec.Split('+')[0];
+
+            if ((visName != null) &&
+                (visName != "") &&
+                locations.ContainsKey(visName))
+            {
+                return locations[visName];
+            }
+            else
+                return null;
         }
 
 
         //
         // Return a point collection of waypoints for the given data path.
-        // Currently just two points.
         //
         private PointCollection PointsForPath(Visual vis)
         {
-            string objType = vis.objType;
-            string objName = vis.objName;
 
-            // Only links have waypoints.
-            if (objType != "link")
-            {
-                ShowError(String.Format("Tried to find waypoints for non-link object named {0} with type {1}.",
-                                        objName, objType));
-                return null;
-            }
-
-            // Get link info.
-            Link thisLink = FindObject(objType, objName) as Link;
-            if (thisLink == null)
-                return null;
-
-
-            // Get the list of nodes that the path follows.
-            // Use the list in "datapath" attribute, if we can.
-            List<Node> datapathNodes = new List<Node>();
+            // Get the list of visual locations that the path follows.
+            // Use the list in "datapath" attribute.
+            List<Location> datapathLocations = new List<Location>();
             List<Point> datapathOffsets = new List<Point>();
             string datapath = vis.renderAttributes.GetValue("datapath");
             if (datapath != null)
             {
-                foreach (string nodeSpec in datapath.Split(':'))
+                foreach (string waypointSpec in datapath.Split(':'))
                 {
-                    string nodeName = NodePart(nodeSpec);
-                    Node thisNode = FindObject("node", nodeName) as Node;
-                    if (thisNode != null)
+                    Location loc = VisPart(waypointSpec);
+                    if (loc != null)
                     {
-                        datapathNodes.Add(thisNode);
-                        datapathOffsets.Add(OffsetPart(nodeSpec));
+                        datapathLocations.Add(loc);
+                        datapathOffsets.Add(OffsetPart(waypointSpec));
                     }
                 }
             }
 
-            // Didn't find a good datapath.  Just use the two endpoints.
-            if (datapathNodes.Count() < 2)
+            // Didn't find a good datapath.
+            if (datapathLocations.Count() < 2)
             {
-                datapathNodes.Clear();
-                Node sourceNode = FindObject("node", thisLink.sourceNode) as Node;
-                Node destNode = FindObject("node", thisLink.destNode) as Node;
-                if ((sourceNode == null) || (destNode == null))
-                    return null;
-                datapathNodes.Add(sourceNode);
-                datapathOffsets.Add(new Point(0, 0));
-                datapathNodes.Add(destNode);
-                datapathOffsets.Add(new Point(0, 0));
+                ShowError(String.Format("Missing or bad datapath attribute for arc {0}.",
+                                        vis.name));
+                return null;
             }
-
 
             // Convert from (lat,lon) to pixel coordinates, using the initial
             // point as origin.
-            Node firstNode = datapathNodes[0];
-            Location firstLoc = new Location(firstNode.Latitude, firstNode.Longitude);
+            Location firstLoc = datapathLocations[0];
             Point firstPoint = sliceMap.LocationToViewportPoint(firstLoc);
             PointCollection result = new PointCollection();
 
-            for (int i=0; i < datapathNodes.Count; i++)
+            for (int i=0; i < datapathLocations.Count; i++)
             {
-                Node thisNode = datapathNodes[i];
+                Location thisLoc = datapathLocations[i];
                 Point offset = datapathOffsets[i];
-                Location thisLoc = new Location(thisNode.Latitude, thisNode.Longitude);
                 Point thisPoint = sliceMap.LocationToViewportPoint(thisLoc);
                 result.Add(new Point(thisPoint.X + offset.X - firstPoint.X,
                                      thisPoint.Y + offset.Y - firstPoint.Y));
@@ -1042,7 +1020,6 @@ namespace GENIVisuals
 
             // Build URI for query.
             string scriptName = "";
-            string scriptParams = "";
 
             // Status queries use get_status.php; data use get_data.php
             // *** Not pretty:  status query is indicated by null visualization

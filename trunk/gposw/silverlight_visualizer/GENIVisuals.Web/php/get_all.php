@@ -21,6 +21,7 @@ $mysql_linksDestNodeCol = "destNode";
 $mysql_visualsTable  = "visuals";
 $mysql_visualsIDCol = "id";
 $mysql_visualsSliceNameCol = "sliceName";
+$mysql_visualsNameCol = "name";
 $mysql_visualsSubSliceCol = "subSlice";
 $mysql_visualsSequenceCol = "sequence";
 $mysql_visualsInfoTypeCol = "infoType";
@@ -71,7 +72,6 @@ $nodeReturnItems = array(
 	"returnType" => "nodes",
 	"query" => $query,
 	"results" => $nodeArray );
-//$JSONResult = json_encode($returnItems);
 
 // ******************* Links section
  
@@ -94,7 +94,6 @@ $linkReturnItems = array(
 	"returnType" => "links",
 	"query" => $query,
 	"results" => $linkArray );
-//$JSONResult = json_encode($returnItems);
 
 
 // ********************* Visuals section
@@ -109,6 +108,7 @@ while($itemRow = mysql_fetch_array($result))
   $visualArray[] = array(
 	$mysql_visualsIDCol => $itemRow[$mysql_visualsIDCol],
 	$mysql_visualsSliceNameCol => $itemRow[$mysql_visualsSliceNameCol],	
+	$mysql_visualsNameCol => $itemRow[$mysql_visualsNameCol],	
 	$mysql_visualsSubSliceCol => $itemRow[$mysql_visualsSubSliceCol],	
 	$mysql_visualsSequenceCol => $itemRow[$mysql_visualsSequenceCol],
 	$mysql_visualsInfoTypeCol => $itemRow[$mysql_visualsInfoTypeCol],
@@ -128,7 +128,6 @@ $visualReturnItems = array(
 	"returnType" => "visuals",
 	"query" => $query,
 	"results" => $visualArray );
-//$JSONResult = json_encode($returnItems);
 
 // ********************* Status section
 
