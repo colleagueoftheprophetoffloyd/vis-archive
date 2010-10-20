@@ -181,6 +181,7 @@ namespace GENIVisuals
             return null;
         }
 
+        private int reloadCount = 0;
 
         void wc_UploadStringCompleted(object sender, UploadStringCompletedEventArgs e)
         {
@@ -199,6 +200,7 @@ namespace GENIVisuals
                     {
                         LoadNodes(nodeResults);
                         previousNodeResults = nodeResults.ToString();
+                        infoLabel.Content = "nodes:";
                         changedSomething = true;
                     }
 
@@ -208,6 +210,7 @@ namespace GENIVisuals
                     {
                         LoadLinks(linkResults);
                         previousLinkResults = linkResults.ToString();
+                        infoLabel.Content = "links:";
                         changedSomething = true;
                     }
 
@@ -218,12 +221,20 @@ namespace GENIVisuals
                     {
                         LoadVisuals(visualResults);
                         previousVisualResults = visualResults.ToString();
+                        if (!changedSomething)
+                            infoLabel.Content = "visuals:";
                         changedSomething = true;
                         DisplayVisuals();
                         SetupDataUpdates();
 
                         if (parameters.useBogusData)
                             SetupBogusDataUpdates();
+                    }
+
+                    if (changedSomething)
+                    {
+                        infoLabel.Content += reloadCount.ToString();
+                        reloadCount++;
                     }
 
                     JsonValue statusResults = resultsOfType(completeResult, "status");
@@ -824,6 +835,9 @@ namespace GENIVisuals
 
                     Binding bind = new Binding("currentValue");
                     bind.Source = myStat;
+                    string stringFormat = vis.renderAttributes.GetValue("stringformat");
+                    if (stringFormat != null)
+                        bind.StringFormat = stringFormat;
                     pair.Value.SetBinding(Label.ContentProperty, bind);
                     control = pair;
                 }
@@ -922,12 +936,12 @@ namespace GENIVisuals
                     newParams.subSlice = zoomTarget;
 
                 // width
-                string width = advice.GetValue("width");
+                string width = advice.GetValue("mapwidth");
                 if (width != null)
                     fw.Width = Convert.ToInt32(width);
 
                 // height
-                string height = advice.GetValue("height");
+                string height = advice.GetValue("mapheight");
                 if (height != null)
                     fw.Height = Convert.ToInt32(height);
 
@@ -1103,10 +1117,10 @@ namespace GENIVisuals
             sliceMap.SetView(mapCenter, targetZoomLevel);
 
 
-            // Map appearance: arial (default), road, black
+            // Map appearance: road (default), arial, black
             string mapMode = advice.GetValue("mapMode");
-            if (mapMode == "road")
-                sliceMap.Mode = new Microsoft.Maps.MapControl.RoadMode();
+            if (mapMode == "aerial")
+                sliceMap.Mode = new Microsoft.Maps.MapControl.AerialMode();
             if (mapMode == "black")
                 BlackLayer.Opacity = 1;            
         }

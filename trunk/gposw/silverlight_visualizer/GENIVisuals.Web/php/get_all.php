@@ -98,7 +98,7 @@ $linkReturnItems = array(
 
 // ********************* Visuals section
 
-$query = "SELECT * FROM `$mysql_visualsTable` WHERE `$mysql_visualsSliceNameCol` = '$slice' order by `$mysql_visualsSequenceCol`;";
+$query = "SELECT * FROM `$mysql_visualsTable` WHERE `$mysql_visualsSliceNameCol` = '$slice';";
 
 $result = mysql_query($query);
 $visualArray = array();

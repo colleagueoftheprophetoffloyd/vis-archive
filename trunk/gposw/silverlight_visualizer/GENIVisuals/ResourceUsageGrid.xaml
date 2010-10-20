@@ -11,11 +11,11 @@
     <gv:VisualControl.Resources>
         <SolidColorBrush x:Name="BlackBrush" Color="Black">
         </SolidColorBrush>
-        <LinearGradientBrush x:Name="InUseFill" EndPoint="1,1" StartPoint="0,0">
-            <GradientStop Color="#FFEF3838" Offset="0"/>
-            <GradientStop Color="#FFC42929" Offset="1"/>
-        </LinearGradientBrush>
         <LinearGradientBrush x:Name="AvailableFill" EndPoint="1,1" StartPoint="0,0">
+            <GradientStop Color="#FF8080EF" Offset="0"/>
+            <GradientStop Color="#FF5B5BBA" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Name="InUseFill" EndPoint="1,1" StartPoint="0,0">
             <GradientStop Color="#FF38EF38" Offset="0"/>
             <GradientStop Color="#FF29C429" Offset="1"/>
         </LinearGradientBrush>

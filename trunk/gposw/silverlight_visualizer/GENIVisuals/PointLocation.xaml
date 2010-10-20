@@ -8,16 +8,26 @@
     mc:Ignorable="d"
     d:DesignHeight="400" d:DesignWidth="400">
     <gv:VisualControl.Resources>
-        <Color x:Key="DarkColor">DarkGray</Color>
+        <Color x:Key="DarkColor">DarkBlue</Color>
         <Color x:Key="LightColor">#FFF0F0F0</Color>
+        <Color x:Key="ActiveDarkColor">Lime</Color>
+        <Color x:Key="ActiveLightColor">#FFF0F0F0</Color>
         <RadialGradientBrush x:Key="StrokeBrush" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
             <GradientStop Color="#FF666666" Offset="0" />
             <GradientStop Color="#FFD4D4D4" Offset="1" />
         </RadialGradientBrush>
-        <RadialGradientBrush x:Key="FillBrush" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+        <RadialGradientBrush x:Name="FillBrush" Center="0.5,0.5" GradientOrigin="0.4,0.4" RadiusX="0.5" RadiusY="0.5">
             <GradientStop Color="{StaticResource LightColor}" Offset="0" />
             <GradientStop Color="{StaticResource DarkColor}" Offset="1" />
         </RadialGradientBrush>
+        <RadialGradientBrush x:Name="ActiveFillBrush" Center="0.5,0.5" GradientOrigin="0.4,0.4" RadiusX="0.5" RadiusY="0.5">
+            <GradientStop Color="{StaticResource ActiveLightColor}" Offset="0" />
+            <GradientStop Color="{StaticResource ActiveDarkColor}" Offset="1" />
+        </RadialGradientBrush>
+        <TransformGroup x:Name="StarTransform" >
+            <ScaleTransform x:Name="StarScale" ScaleX="1" ScaleY="1"/>
+        </TransformGroup>
+
     </gv:VisualControl.Resources>
     
     <Grid x:Name="LayoutRoot" Background="Transparent" Opacity="1">
@@ -26,7 +36,7 @@
 			  Margin="2,2,2,2" StrokeThickness="1.5" StrokeLineJoin="Round" 
               Data="F1 M 288,136L 219,136L 192,63.9999L 164.143,136L 96,136L 150.857,184L 123.429,256L 192,208L 260.571,256L 233.143,184L 288,136 Z " 
               Stroke="{StaticResource StrokeBrush}" 
-              Fill="LightGray"
+              Fill="{StaticResource FillBrush}" RenderTransformOrigin="0.5,0.5" RenderTransform="{StaticResource StarTransform}" 
               />
     </Grid>
 </gv:VisualControl>
