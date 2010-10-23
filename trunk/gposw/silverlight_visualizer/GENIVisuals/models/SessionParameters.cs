@@ -23,11 +23,8 @@ namespace GENIVisuals.models
         public string dbName { get; set; }
         public bool useDebugServer { get; set; }
         public string debugServer { get; set; }
+        public bool showDebugMessages { get; set; }
         public bool useBogusData { get; set; }
-        //public bool makePeriodicQuery { get; set; }
-        //public Collection<Visual> topologyVisuals { get; set; }
-        //public Dictionary<string, Node> topologyNodes { get; set; }
-        //public Dictionary<string, Link> topologyLinks { get; set; }
 
         
         public SessionParameters(SessionParameters original)
@@ -40,18 +37,12 @@ namespace GENIVisuals.models
             dbName = original.dbName;
             useDebugServer = original.useDebugServer;
             debugServer = original.debugServer;
+            showDebugMessages = original.showDebugMessages;
             useBogusData = original.useBogusData;
-            //makePeriodicQuery = copy.makePeriodicQuery;
-            //topologyVisuals = new Collection<Visual>(copy.topologyVisuals);
-            //topologyNodes = new Dictionary<string, Node>(copy.topologyNodes);
-            //topologyLinks = new Dictionary<string, Link>(copy.topologyLinks);
         }
 
         public SessionParameters()
         {
-            //topologyVisuals = new Collection<Visual>();
-            //topologyNodes = new Dictionary<string, Node>();
-            //topologyLinks = new Dictionary<string, Link>();
         }
 
     }

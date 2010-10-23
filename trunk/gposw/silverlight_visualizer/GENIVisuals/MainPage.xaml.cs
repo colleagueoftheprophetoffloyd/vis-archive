@@ -9,6 +9,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Data;
 using System.Windows.Controls.DataVisualization.Charting;
@@ -125,6 +126,18 @@ namespace GENIVisuals
 
         private void InializeBaseConfiguration()
         {
+            // Debug messages?
+            if (parameters.showDebugMessages)
+            {
+                sliceLabel.Visibility = System.Windows.Visibility.Visible;
+                infoLabel.Visibility = System.Windows.Visibility.Visible;
+            }
+            else
+            {
+                sliceLabel.Visibility = System.Windows.Visibility.Collapsed;
+                infoLabel.Visibility = System.Windows.Visibility.Collapsed;
+            }
+
             // Gather up parameters to pass to PHP scripts.
             List<string> postDataItems = new List<string>();
             if ((parameters.slice != null) && (parameters.slice != ""))
@@ -678,6 +691,27 @@ namespace GENIVisuals
 
 
 
+        //
+        // Convert an image string (might be relative, referring to something
+        // in the images directory, or absolute) into an absolute URI.
+        //
+        private Uri uriForImageString(string imageString)
+        {
+            string uriString = null;
+
+            if (imageString.StartsWith("images/") &&
+                (!imageString.Substring("images/".Length).Contains('/')))
+            {
+                string myURI = Application.Current.Host.Source.ToString();
+                string imageBase = myURI.Substring(0, myURI.IndexOf("ClientBin"));
+                uriString = imageBase + imageString;
+            }
+            else
+                uriString = imageString;
+            Uri imageSourceURI = new Uri(uriString, UriKind.Absolute);
+            return imageSourceURI;
+        }
+
 
         //
         // Create the UI Control that presents data for the requested visualization.
@@ -745,19 +779,8 @@ namespace GENIVisuals
                 string iconString = nodes[vis.objName].Icon;
                 if ((iconString != null) && (iconString != ""))
                 {
-                    string uriString = null;
-
-                    if (iconString.StartsWith("images/") &&
-                        (!iconString.Substring("images/".Length).Contains('/')))
-                    {
-                        string myURI = Application.Current.Host.Source.ToString();
-                        string imageBase = myURI.Substring(0, myURI.IndexOf("ClientBin"));
-                        uriString = imageBase + iconString;
-                    }
-                    else
-                        uriString = iconString;
-                    Uri imageSourceURI = new Uri(uriString, UriKind.Absolute);
-                    frame.FramedImage.Source = new System.Windows.Media.Imaging.BitmapImage(imageSourceURI);
+                    Uri imageSourceURI = uriForImageString(iconString);
+                    frame.FramedImage.Source = new BitmapImage(imageSourceURI);
                 }
 
                 if (frame.FramedImage.Source == null)
@@ -970,7 +993,9 @@ namespace GENIVisuals
 
             // Don't need decorations in child window.
             Grid lr = mp.LayoutRoot;
-            lr.Children.Remove(mp.image1);
+            lr.Children.Remove(mp.leftImage);
+            lr.Children.Remove(mp.centerImage);
+            lr.Children.Remove(mp.rightImage);
             lr.Children.Remove(mp.infoLabel);
             lr.Children.Remove(mp.sliceLabel);
             mp.sliceMap.LogoVisibility = Visibility.Collapsed;
@@ -1123,6 +1148,32 @@ namespace GENIVisuals
                 sliceMap.Mode = new Microsoft.Maps.MapControl.AerialMode();
             if (mapMode == "black")
                 BlackLayer.Opacity = 1;            
+
+            // Top left and right image spaces.
+            // Only available if this is the main map and
+            // user has not asked for debugging messages.
+            if ((parameters.subSlice == null) &&
+                (!parameters.showDebugMessages))
+            {
+                string leftImageName = advice.GetValue("leftimage");
+                if ((leftImageName != null) &&
+                    (leftImageName != ""))
+                {
+                    Uri imageSourceURI = uriForImageString(leftImageName);
+                    leftImage.Source = new BitmapImage(imageSourceURI);
+                    leftImage.Visibility = System.Windows.Visibility.Visible;
+                }
+
+                string rightImageName = advice.GetValue("rightimage");
+                if ((rightImageName != null) &&
+                    (rightImageName != ""))
+                {
+                    Uri imageSourceURI = uriForImageString(rightImageName);
+                    rightImage.Source = new BitmapImage(imageSourceURI);
+                    rightImage.Visibility = System.Windows.Visibility.Visible;
+                }
+            }
+
         }
 
         // If map view changes, may need to refresh some visuals.

@@ -35,6 +35,7 @@ namespace GENIVisuals
             }
         }
 
+
         public static readonly DependencyProperty MaximumProperty =
             DependencyProperty.RegisterAttached(
             "Maximum",
@@ -53,7 +54,6 @@ namespace GENIVisuals
                 SetValue(MaximumProperty, value);
             }
         }
-
 
 
         private static Color[] colors =

@@ -32,7 +32,7 @@
         <toolkit:Chart Margin="8" Name="Chart" LegendStyle="{StaticResource LegendStyle}" TitleStyle="{StaticResource TitleStyle}">
             <toolkit:Chart.Axes>
                 <toolkit:DateTimeAxis x:Name="TimeAxis" Orientation="X" AxisLabelStyle="{StaticResource TimeLabelStyle}" Location="Bottom" />
-                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" Minimum="{Binding RelativeSource={RelativeSource Self}, Path=Minimum}" Maximum="{Binding RelativeSource={RelativeSource Self}, Path=Maximum}" />
+                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" Minimum="0" />
             </toolkit:Chart.Axes>
         </toolkit:Chart>
     </Grid>

@@ -49,6 +49,7 @@ namespace GENIVisuals
                 dbPassword = passwordBox.Password,
                 dbName = dbNameBox.Text,
                 useDebugServer = (useDebugServerCheckBox.IsChecked == true),
+                showDebugMessages = (showDebugMessagesCheckBox.IsChecked == true),
                 debugServer = DebugServerTextBox.Text,
                 useBogusData = (useBogusDataCheckBox.IsChecked == true)
             };
