@@ -161,6 +161,12 @@ namespace GENIVisuals
             FigureCollection.Add(fig);
         }
 
+
+        private Boolean PathIsStraightLine()
+        {
+            return (Waypoints.Count == 2);
+        }
+        
         private PathGeometry GetReversePathGeometry()
         {
             PathGeometry geo = new PathGeometry();
@@ -318,30 +324,46 @@ namespace GENIVisuals
             }
             element.RenderTransform = tg;
 
-            DoubleAnimationUsingPath animX;
-            animX = new DoubleAnimationUsingPath();
-            animX.BeginTime = TimeSpan.FromSeconds(delay);
-            animX.Duration = TimeSpan.FromSeconds(pathDuration);
-            animX.RepeatBehavior = RepeatBehavior.Forever;
-            animX.PathGeometry = path;
-            animX.Source = PathAnimationSource.X;
-            animX.Target = element;
-            animX.TargetProperty = new PropertyPath("(Canvas.Left)");
-            animX.Tolerance = 30;
+            if (false && PathIsStraightLine())
+            {
+                PointAnimation anim = new PointAnimation();
+                anim.BeginTime = TimeSpan.FromSeconds(delay);
+                anim.Duration = TimeSpan.FromSeconds(pathDuration);
+                anim.RepeatBehavior = RepeatBehavior.Forever;
+                PolyLineSegment poly = path.Figures[0].Segments[0] as PolyLineSegment;
+                anim.From = poly.Points[0];
+                anim.To = poly.Points[1];
+                Point center = new Point();
+                //Storyboard.SetTarget(anim, center);
+                //Storyboard.SetTargetProperty(anim, new PropertyPath());
+            }
+            else
+            {
+                DoubleAnimationUsingPath animX;
+                animX = new DoubleAnimationUsingPath();
+                animX.BeginTime = TimeSpan.FromSeconds(delay);
+                animX.Duration = TimeSpan.FromSeconds(pathDuration);
+                animX.RepeatBehavior = RepeatBehavior.Forever;
+                animX.PathGeometry = path;
+                animX.Source = PathAnimationSource.X;
+                animX.Target = element;
+                animX.TargetProperty = new PropertyPath("(Canvas.Left)");
+                animX.Tolerance = 30;
 
-            DoubleAnimationUsingPath animY;
-            animY = new DoubleAnimationUsingPath();
-            animY.BeginTime = TimeSpan.FromSeconds(delay);
-            animY.Duration = TimeSpan.FromSeconds(pathDuration);
-            animY.RepeatBehavior = RepeatBehavior.Forever;
-            animY.PathGeometry = path;
-            animY.Source = PathAnimationSource.Y;
-            animY.Target = element;
-            animY.TargetProperty = new PropertyPath("(Canvas.Top)");
-            animY.Tolerance = 30;
+                DoubleAnimationUsingPath animY;
+                animY = new DoubleAnimationUsingPath();
+                animY.BeginTime = TimeSpan.FromSeconds(delay);
+                animY.Duration = TimeSpan.FromSeconds(pathDuration);
+                animY.RepeatBehavior = RepeatBehavior.Forever;
+                animY.PathGeometry = path;
+                animY.Source = PathAnimationSource.Y;
+                animY.Target = element;
+                animY.TargetProperty = new PropertyPath("(Canvas.Top)");
+                animY.Tolerance = 30;
 
-            activePathAnimations.Add(animX);
-            activePathAnimations.Add(animY);
+                activePathAnimations.Add(animX);
+                activePathAnimations.Add(animY);
+            }
         }
 
         private void SetupViolinAnimations(string violinDir,
@@ -410,7 +432,7 @@ namespace GENIVisuals
         private void SetupBallsAnimations(string ballsDir,
                                           string pathDir)
         {
-            const int numBalls = 4;
+            const int numBalls = 2;
             Storyboard sb = new Storyboard();
 
 
@@ -418,14 +440,14 @@ namespace GENIVisuals
                 (ballsDir == "forward"))
             {
                 for (int index = 0; index < numBalls; index++)
-                    SetupImageAnimationAlongPath(sb, OneBall(), "forward", false, 0.5 * index);
+                    SetupImageAnimationAlongPath(sb, OneBall(), "forward", false, index * (2.0 / Convert.ToDouble(numBalls)));
             }
 
             if ((ballsDir == "both") ||
                 (ballsDir == "backward"))
             {
                 for (int index = 0; index < numBalls; index++)
-                    SetupImageAnimationAlongPath(sb, OneBall(), "backward", false, 0.5 * index);
+                    SetupImageAnimationAlongPath(sb, OneBall(), "backward", false, index * (2.0 / Convert.ToDouble(numBalls)));
             }
 
             activeAdditionalStoryboards.Add(sb);

@@ -70,6 +70,7 @@
                 </PathGeometry>
             </Path.Data>
         </Path>
-        <Canvas x:Name="AnimationCanvas" />
+        <Canvas x:Name="AnimationCanvas">
+        </Canvas>
     </Grid>
 </gv:VisualControl>
