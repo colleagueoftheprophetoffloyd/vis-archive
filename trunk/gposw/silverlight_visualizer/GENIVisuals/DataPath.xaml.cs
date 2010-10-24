@@ -294,10 +294,10 @@ namespace GENIVisuals
 
             // Want to translate object to center it along path.
             TransformGroup tg = new TransformGroup();
-            TranslateTransform translate = new TranslateTransform();
-            translate.X = -1.0 * element.Width / 2.0;
-            translate.Y = -1.0 * element.Height / 2.0;
-            tg.Children.Add(translate);
+            TranslateTransform centeringTranslation = new TranslateTransform();
+            centeringTranslation.X = -1.0 * element.Width / 2.0;
+            centeringTranslation.Y = -1.0 * element.Height / 2.0;
+            tg.Children.Add(centeringTranslation);
 
             PathGeometry path;
             if (direction == "forward")
@@ -324,46 +324,30 @@ namespace GENIVisuals
             }
             element.RenderTransform = tg;
 
-            if (false && PathIsStraightLine())
-            {
-                PointAnimation anim = new PointAnimation();
-                anim.BeginTime = TimeSpan.FromSeconds(delay);
-                anim.Duration = TimeSpan.FromSeconds(pathDuration);
-                anim.RepeatBehavior = RepeatBehavior.Forever;
-                PolyLineSegment poly = path.Figures[0].Segments[0] as PolyLineSegment;
-                anim.From = poly.Points[0];
-                anim.To = poly.Points[1];
-                Point center = new Point();
-                //Storyboard.SetTarget(anim, center);
-                //Storyboard.SetTargetProperty(anim, new PropertyPath());
-            }
-            else
-            {
-                DoubleAnimationUsingPath animX;
-                animX = new DoubleAnimationUsingPath();
-                animX.BeginTime = TimeSpan.FromSeconds(delay);
-                animX.Duration = TimeSpan.FromSeconds(pathDuration);
-                animX.RepeatBehavior = RepeatBehavior.Forever;
-                animX.PathGeometry = path;
-                animX.Source = PathAnimationSource.X;
-                animX.Target = element;
-                animX.TargetProperty = new PropertyPath("(Canvas.Left)");
-                animX.Tolerance = 30;
+            DoubleAnimationUsingPath animX;
+            animX = new DoubleAnimationUsingPath();
+            animX.BeginTime = TimeSpan.FromSeconds(delay);
+            animX.Duration = TimeSpan.FromSeconds(pathDuration);
+            animX.RepeatBehavior = RepeatBehavior.Forever;
+            animX.PathGeometry = path;
+            animX.Source = PathAnimationSource.X;
+            animX.Target = element;
+            animX.TargetProperty = new PropertyPath("(Canvas.Left)");
+            animX.Tolerance = 30;
 
-                DoubleAnimationUsingPath animY;
-                animY = new DoubleAnimationUsingPath();
-                animY.BeginTime = TimeSpan.FromSeconds(delay);
-                animY.Duration = TimeSpan.FromSeconds(pathDuration);
-                animY.RepeatBehavior = RepeatBehavior.Forever;
-                animY.PathGeometry = path;
-                animY.Source = PathAnimationSource.Y;
-                animY.Target = element;
-                animY.TargetProperty = new PropertyPath("(Canvas.Top)");
-                animY.Tolerance = 30;
+            DoubleAnimationUsingPath animY;
+            animY = new DoubleAnimationUsingPath();
+            animY.BeginTime = TimeSpan.FromSeconds(delay);
+            animY.Duration = TimeSpan.FromSeconds(pathDuration);
+            animY.RepeatBehavior = RepeatBehavior.Forever;
+            animY.PathGeometry = path;
+            animY.Source = PathAnimationSource.Y;
+            animY.Target = element;
+            animY.TargetProperty = new PropertyPath("(Canvas.Top)");
+            animY.Tolerance = 30;
 
-                activePathAnimations.Add(animX);
-                activePathAnimations.Add(animY);
-            }
+            activePathAnimations.Add(animX);
+            activePathAnimations.Add(animY);
         }
 
         private void SetupViolinAnimations(string violinDir,
