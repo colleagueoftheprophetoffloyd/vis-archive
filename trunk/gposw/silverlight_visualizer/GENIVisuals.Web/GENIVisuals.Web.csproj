@@ -44,6 +44,7 @@
     <Content Include="images\ClemsonWordWhite.png" />
     <Content Include="images\ColumbiaWhite.png" />
     <Content Include="images\cscuWhite.png" />
+    <Content Include="images\Devil.png" />
     <Content Include="images\DocomoTrans.png" />
     <Content Include="images\DocomoWhite.png" />
     <Content Include="images\ec2.png" />
@@ -71,8 +72,19 @@
     <Content Include="images\polyWhite.png" />
     <Content Include="images\Purdue.png" />
     <Content Include="images\puzzlePiece.png" />
+    <Content Include="images\router1-small.png" />
+    <Content Include="images\router1.png" />
+    <Content Include="images\router2-small.png" />
+    <Content Include="images\router2.png" />
     <Content Include="images\RutgersWinlabTrans.png" />
     <Content Include="images\RutgersWinlabWhite.png" />
+    <Content Include="images\server.png" />
+    <Content Include="images\server1-small.png" />
+    <Content Include="images\server1.png" />
+    <Content Include="images\server2-small.png" />
+    <Content Include="images\server2.png" />
+    <Content Include="images\server3-small.png" />
+    <Content Include="images\server3.png" />
     <Content Include="images\smile.png" />
     <Content Include="images\Stanford.jpg" />
     <Content Include="images\UIUCHorizTrans.png" />

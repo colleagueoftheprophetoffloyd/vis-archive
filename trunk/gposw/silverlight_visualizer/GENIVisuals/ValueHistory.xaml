@@ -14,6 +14,8 @@
             <Style x:Name="LegendStyle" TargetType="toolkit:Legend">
                 <Setter Property="Visibility" Value="Visible" />
                 <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontSize" Value="14" />
+				<Setter Property="FontWeight" Value="Bold" />
                 <!--Setter Property="Width" Value="0"/> -->
                 <!--Setter Property="Height" Value="0"/> -->
             </Style>
@@ -22,6 +24,10 @@
             </Style>
             <Style x:Name="TimeLabelStyle" TargetType="toolkit:DateTimeAxisLabel">
                 <Setter Property="StringFormat" Value="{}{0:HH:mm}"/>
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+            <Style x:Name="ValueLabelStyle" TargetType="toolkit:NumericAxisLabel">
+                <Setter Property="FontSize" Value="14" />
             </Style>
             <Style x:Name="LineStyle" TargetType="Polyline">
                 <Setter Property="StrokeThickness" Value="5" />
@@ -31,8 +37,8 @@
 
         <toolkit:Chart Margin="8" Name="Chart" LegendStyle="{StaticResource LegendStyle}" TitleStyle="{StaticResource TitleStyle}">
             <toolkit:Chart.Axes>
-                <toolkit:DateTimeAxis x:Name="TimeAxis" Orientation="X" AxisLabelStyle="{StaticResource TimeLabelStyle}" Location="Bottom" />
-                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" Minimum="0" />
+                <toolkit:DateTimeAxis x:Name="TimeAxis" Orientation="X" AxisLabelStyle="{StaticResource TimeLabelStyle}" Location="Bottom" FontWeight="Bold" />
+                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" Minimum="0" AxisLabelStyle="{StaticResource ValueLabelStyle}" FontWeight="Bold" />
             </toolkit:Chart.Axes>
         </toolkit:Chart>
     </Grid>
