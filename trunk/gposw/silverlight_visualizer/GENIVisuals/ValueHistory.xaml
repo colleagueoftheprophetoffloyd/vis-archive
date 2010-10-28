@@ -38,7 +38,7 @@
         <toolkit:Chart Margin="8" Name="Chart" LegendStyle="{StaticResource LegendStyle}" TitleStyle="{StaticResource TitleStyle}">
             <toolkit:Chart.Axes>
                 <toolkit:DateTimeAxis x:Name="TimeAxis" Orientation="X" AxisLabelStyle="{StaticResource TimeLabelStyle}" Location="Bottom" FontWeight="Bold" />
-                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" Minimum="0" AxisLabelStyle="{StaticResource ValueLabelStyle}" FontWeight="Bold" />
+                <toolkit:LinearAxis x:Name="ValueAxis" Orientation="Y" Location="Left" AxisLabelStyle="{StaticResource ValueLabelStyle}" FontWeight="Bold" />
             </toolkit:Chart.Axes>
         </toolkit:Chart>
     </Grid>

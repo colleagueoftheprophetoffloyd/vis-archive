@@ -32,6 +32,11 @@ namespace GENIVisuals
             set
             {
                 SetValue(MinimumProperty, value);
+                if (value.HasValue)
+                {
+                    LinearAxis axis = Chart.Axes[1] as LinearAxis;
+                    axis.Minimum = value.Value;
+                }
             }
         }
 
@@ -52,6 +57,11 @@ namespace GENIVisuals
             set
             {
                 SetValue(MaximumProperty, value);
+                if (value.HasValue)
+                {
+                    LinearAxis axis = Chart.Axes[1] as LinearAxis;
+                    axis.Maximum = value.Value;
+                }
             }
         }
 
