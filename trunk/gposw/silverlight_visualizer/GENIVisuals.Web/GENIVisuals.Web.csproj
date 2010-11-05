@@ -42,6 +42,8 @@
     <Content Include="images\Clemson.png" />
     <Content Include="images\ClemsonWordTrans.png" />
     <Content Include="images\ClemsonWordWhite.png" />
+    <Content Include="images\CMURed.png" />
+    <Content Include="images\CMUWhite.jpg" />
     <Content Include="images\ColumbiaWhite.png" />
     <Content Include="images\cscuWhite.png" />
     <Content Include="images\Devil.png" />
@@ -109,8 +111,6 @@
     <Content Include="images\WiscShieldTrans.png" />
     <Content Include="images\WiTestWhite.png" />
     <Content Include="Silverlight.js" />
-    <Content Include="starlightTrans.png" />
-    <Content Include="starlightWhite.png" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
