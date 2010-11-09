@@ -40,7 +40,7 @@
         <Image HorizontalAlignment="Stretch" Name="rightImage" Source="http://www.geni.net/wp-content/themes/iBeam-CMS/img/header-home.jpg" Stretch="Uniform" UseLayoutRounding="True" VerticalAlignment="Stretch" Grid.Column="2" Grid.RowSpan="2" Visibility="Collapsed" />
         <sdk:Label Name="infoLabel" VerticalAlignment="Bottom" HorizontalContentAlignment="Right" VerticalContentAlignment="Bottom" Grid.Row="0" Height="18" />
         <sdk:Label Name="sliceLabel" VerticalAlignment="Bottom" HorizontalContentAlignment="Right" VerticalContentAlignment="Bottom" Content="Slice" Grid.Row="1" Height="18" />
-        <m:Map Grid.Row="2" Grid.ColumnSpan="3" CredentialsProvider="AmW6NdmLUEpHsmyKPZdz4w6D0HiCMeOiLl7Gs8PzyTYzTDdaNsmaPVHZzv6nkLgJ" Name="sliceMap" Mode="Road" NavigationVisibility="Collapsed" ScaleVisibility="Collapsed" ViewChangeOnFrame="sliceMap_ViewChange">
+        <m:Map Grid.Row="2" Grid.ColumnSpan="3" CredentialsProvider="" Name="sliceMap" Mode="Road" NavigationVisibility="Collapsed" ScaleVisibility="Collapsed" ViewChangeOnFrame="sliceMap_ViewChange">
             <m:MapLayer x:Name="BlackLayer" Background="Black" Opacity="0" />
             <m:MapLayer x:Name="OverlayLayer" />
         </m:Map>

@@ -144,6 +144,7 @@
     <Compile Include="ValueHistory.xaml.cs">
       <DependentUpon>ValueHistory.xaml</DependentUpon>
     </Compile>
+    <Compile Include="viewClasses\BingAppId.cs" />
     <Compile Include="viewClasses\StatusAnimationInfo.cs" />
     <Compile Include="viewClasses\VisualElements.cs" />
     <Compile Include="VisualControl.xaml.cs">

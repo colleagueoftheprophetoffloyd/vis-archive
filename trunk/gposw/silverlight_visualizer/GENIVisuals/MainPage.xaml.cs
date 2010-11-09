@@ -106,6 +106,9 @@ namespace GENIVisuals
         {
             InitializeComponent();
 
+            // Setup map key
+            sliceMap.CredentialsProvider = viewClasses.BingAppId.Provider;
+
             // Remember session parameters
             parameters = myparams;
 
